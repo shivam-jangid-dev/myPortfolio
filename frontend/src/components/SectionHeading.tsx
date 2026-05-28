@@ -13,7 +13,8 @@ export function SectionHeading({ eyebrow, title, subtitle, className }: Props) {
       {eyebrow ? (
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">{eyebrow}</p>
       ) : null}
-      <h2 className="font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl md:text-5xl">
+      <h2 className="font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl md:text-5xl flex items-center gap-3">
+        <span className="text-accent font-mono text-2xl sm:text-3xl md:text-4xl opacity-70">~%</span>
         {title}
       </h2>
       {subtitle ? <p className="text-base leading-relaxed text-muted-foreground">{subtitle}</p> : null}

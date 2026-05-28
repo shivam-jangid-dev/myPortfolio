@@ -1,34 +1,50 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-/** Stored preference: concrete themes or follow OS. */
-export type ThemePreference = 'light' | 'dark' | 'system'
+/** All available theme identifiers. */
+export type ThemeId =
+  | 'terminal-noir'
+  | 'meta'
+  | 'apple'
+  | 'amazon'
+  | 'netflix'
+  | 'google'
+
+/** Ordered list of all themes — used by ThemeSwitcher to render options. */
+export const THEME_IDS: ThemeId[] = [
+  'terminal-noir',
+  'meta',
+  'apple',
+  'amazon',
+  'netflix',
+  'google',
+]
+
+/** Human-readable labels for each theme. */
+export const THEME_LABELS: Record<ThemeId, string> = {
+  'terminal-noir': 'Terminal Noir',
+  meta: 'Meta',
+  apple: 'Apple',
+  amazon: 'Amazon',
+  netflix: 'Netflix',
+  google: 'Google',
+}
 
 const STORAGE_KEY = 'portfolio-theme'
 
-function getSystemTheme(): 'light' | 'dark' {
-  if (typeof window === 'undefined') return 'light'
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
-
-export function resolveTheme(preference: ThemePreference): 'light' | 'dark' {
-  if (preference === 'system') return getSystemTheme()
-  return preference
-}
-
 type ThemeState = {
-  preference: ThemePreference
-  setPreference: (p: ThemePreference) => void
+  preference: ThemeId
+  setPreference: (p: ThemeId) => void
 }
 
 /**
- * Zustand: UI theme selection only. DOM application lives in ThemeProvider
- * so SSR/hydration and data-theme stay in one place.
+ * Zustand: persisted theme selection.
+ * DOM application lives in ThemeProvider so data-theme stays in sync.
  */
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
-      preference: 'system',
+      preference: 'terminal-noir',
       setPreference: (preference) => set({ preference }),
     }),
     { name: STORAGE_KEY },

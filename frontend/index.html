@@ -9,6 +9,40 @@
       content="Shivam Jangid — AI Backend Engineer. Scalable APIs, LLM integrations, Airflow, AWS, and production systems."
     />
     <title>Shivam Jangid — AI Backend Engineer</title>
+
+    <!-- Preconnect to Google Fonts for faster font loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- JetBrains Mono (terminal monospace) + Inter (body sans-serif) -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!--
+      FOUC prevention: set data-theme on <html> BEFORE React hydrates.
+      Reads the persisted Zustand theme store from localStorage synchronously.
+    -->
+    <script>
+      ;(function () {
+        try {
+          var raw = localStorage.getItem('portfolio-theme')
+          if (raw) {
+            var parsed = JSON.parse(raw)
+            // Zustand persist stores as { state: { preference: '...' }, version: 0 }
+            var theme =
+              (parsed && parsed.state && parsed.state.preference) ||
+              'terminal-noir'
+            document.documentElement.dataset.theme = theme
+          } else {
+            document.documentElement.dataset.theme = 'terminal-noir'
+          }
+        } catch (_) {
+          document.documentElement.dataset.theme = 'terminal-noir'
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

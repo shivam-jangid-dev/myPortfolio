@@ -1,64 +1,53 @@
 import { ThemeContext, type ThemeContextValue } from '@/context/themeContext'
-import { useThemeStore, type ThemePreference } from '@/stores/themeStore'
-import { useCallback, useMemo, useSyncExternalStore, useEffect, type ReactNode } from 'react'
+import { useThemeStore, THEME_IDS, type ThemeId } from '@/stores/themeStore'
+import { useCallback, useEffect, useMemo, type ReactNode } from 'react'
 
-function subscribeSystemTheme(onChange: () => void) {
-  const mq = window.matchMedia('(prefers-color-scheme: dark)')
-  mq.addEventListener('change', onChange)
-  return () => mq.removeEventListener('change', onChange)
+/**
+ * Apply the selected theme to the DOM.
+ * Sets data-theme on <html> and color-scheme for native UA elements.
+ */
+const applyDomTheme = (themeId: ThemeId) => {
+  document.documentElement.dataset.theme = themeId
+  // Apple and Google are light themes; everything else is dark
+  const scheme = themeId === 'apple' || themeId === 'google' ? 'light' : 'dark'
+  document.documentElement.style.colorScheme = scheme
 }
 
-function getSystemSnapshot() {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
-}
-
-function getServerSnapshot() {
-  return false
-}
-
-const applyDomTheme = (resolved: 'light' | 'dark') => {
-  document.documentElement.dataset.theme = resolved
-  document.documentElement.style.colorScheme = resolved
-}
-
-const order: ThemePreference[] = ['light', 'dark', 'system']
-
-function normalizePreference(p: ThemePreference): ThemePreference {
-  return order.includes(p) ? p : 'system'
+/**
+ * Validate that a preference string is a known ThemeId.
+ * Falls back to 'terminal-noir' if invalid (e.g., stale localStorage).
+ */
+function normalizeThemeId(raw: string): ThemeId {
+  return THEME_IDS.includes(raw as ThemeId) ? (raw as ThemeId) : 'terminal-noir'
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const preferenceRaw = useThemeStore((s) => s.preference)
   const setPreferenceStore = useThemeStore((s) => s.setPreference)
-  const preference = normalizePreference(preferenceRaw)
 
-  const systemIsDark = useSyncExternalStore(subscribeSystemTheme, getSystemSnapshot, getServerSnapshot)
+  const themeId = normalizeThemeId(preferenceRaw)
 
-  const resolved: 'light' | 'dark' = useMemo(() => {
-    if (preference === 'system') return systemIsDark ? 'dark' : 'light'
-    return preference
-  }, [preference, systemIsDark])
-
+  // Sync to DOM whenever theme changes
   useEffect(() => {
-    applyDomTheme(resolved)
-  }, [resolved])
+    applyDomTheme(themeId)
+  }, [themeId])
 
-  const setPreference = useCallback(
-    (p: ThemePreference) => {
-      setPreferenceStore(normalizePreference(p))
+  const setThemeId = useCallback(
+    (id: ThemeId) => {
+      setPreferenceStore(normalizeThemeId(id))
     },
     [setPreferenceStore],
   )
 
-  const toggle = useCallback(() => {
-    const i = order.indexOf(preference)
-    const next = order[(i + 1) % order.length]
-    setPreference(next)
-  }, [preference, setPreference])
+  const nextTheme = useCallback(() => {
+    const i = THEME_IDS.indexOf(themeId)
+    const next = THEME_IDS[(i + 1) % THEME_IDS.length]
+    setThemeId(next)
+  }, [themeId, setThemeId])
 
   const value = useMemo<ThemeContextValue>(
-    () => ({ preference, resolved, setPreference, toggle }),
-    [preference, resolved, setPreference, toggle],
+    () => ({ themeId, setThemeId, nextTheme, themes: THEME_IDS }),
+    [themeId, setThemeId, nextTheme],
   )
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>

@@ -1,61 +1,222 @@
 /**
- * Theme tokens: HSL triplets (no hsl() wrapper) for Tailwind alpha support.
- * New theme = duplicate a [data-theme="..."] block and override variables only.
+ * Theme tokens — CSS custom properties for the Terminal Noir design system.
+ *
+ * How theming works:
+ *   1. :root defines Terminal Noir as the default theme
+ *   2. Each html[data-theme='...'] block overrides tokens for that theme
+ *   3. Tailwind config maps semantic class names to these variables via hsl(var(--*))
+ *   4. Changing data-theme on <html> swaps the entire visual identity
+ *
+ * Adding a new theme:
+ *   1. Add a new html[data-theme='new-theme'] { ... } block below
+ *   2. Add the theme id to ThemeId type in stores/themeStore.ts
+ *   3. Add entry to THEMES array in context/ThemeProvider.tsx
+ *   4. Done — ThemeSwitcher auto-renders it
  */
 
-:root {
-  --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Syne', ui-sans-serif, system-ui, sans-serif;
+/* ─────────────────────────────────────────────
+   Terminal Noir (Default)
+   Dark, monospace-forward, green/blue accents
+   on near-black (#0d1117) background.
+   ───────────────────────────────────────────── */
+:root,
+html[data-theme='terminal-noir'] {
+  /* Backgrounds */
+  --background: 216 28% 7%;          /* #0d1117 */
+  --card: 215 19% 11%;               /* #161b22 */
+  --muted: 215 14% 15%;              /* #21262d */
 
+  /* Text */
+  --foreground: 210 29% 90%;         /* #e6edf3 */
+  --muted-foreground: 212 9% 56%;    /* #8b949e */
+  --card-foreground: 210 29% 90%;    /* same as foreground */
+
+  /* Accents */
+  --accent: 149 100% 41%;            /* #00d26a — primary green */
+  --accent-foreground: 216 28% 7%;   /* dark text on accent */
+  --accent-secondary: 212 100% 67%;  /* #58a6ff — blue secondary */
+  --ring: 149 100% 41%;
+  --hero-glow: 149 100% 41%;
+
+  /* Borders */
+  --border: 215 9% 21%;              /* #30363d */
+
+  /* Selection */
+  --selection-bg: 149 100% 41% / 0.25;
+  --selection-text: 210 29% 90%;
+
+  /* Typography */
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Spacing */
+  --space-section: 6rem;
+
+  /* Motion */
+  --motion-speed-fast: 150ms;
+  --motion-speed-base: 300ms;
+  --motion-speed-slow: 600ms;
+  --motion-speed-reveal: 750ms;
+  --motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Radius */
   --radius-lg: 1rem;
   --radius-md: 0.625rem;
   --radius-sm: 0.375rem;
 
-  /* Light (default) */
-  --background: 40 20% 98%;
-  --foreground: 240 10% 8%;
-  --muted: 40 10% 92%;
-  --muted-foreground: 240 5% 40%;
-  --card: 0 0% 100%;
-  --card-foreground: 240 10% 8%;
-  --border: 240 6% 88%;
-  --accent: 250 85% 55%;
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 20px hsl(149 100% 41% / 0.15);
+}
+
+
+/* ─────────────────────────────────────────────
+   Meta (Facebook/Instagram)
+   Blue/white, clean social-product feel
+   ───────────────────────────────────────────── */
+html[data-theme='meta'] {
+  --background: 207 33% 15%;         /* #1C2B33 */
+  --card: 207 25% 19%;
+  --muted: 207 18% 24%;
+
+  --foreground: 0 0% 100%;           /* #FFFFFF */
+  --muted-foreground: 207 10% 65%;
+  --card-foreground: 0 0% 100%;
+
+  --accent: 214 100% 51%;            /* #0866FF */
   --accent-foreground: 0 0% 100%;
-  --ring: 250 85% 55%;
-  --hero-glow: 250 90% 60%;
+  --accent-secondary: 214 90% 65%;
+  --ring: 214 100% 51%;
+  --hero-glow: 214 100% 51%;
+
+  --border: 207 15% 28%;
+
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'Inter', -apple-system, sans-serif;
+  --font-display: 'Inter', -apple-system, sans-serif;
+
+  --shadow-glow: 0 0 20px hsl(214 100% 51% / 0.2);
 }
 
-/* Dark */
-html[data-theme='dark'] {
-  --background: 240 12% 6%;
-  --foreground: 40 15% 96%;
-  --muted: 240 8% 14%;
-  --muted-foreground: 40 8% 65%;
-  --card: 240 10% 9%;
-  --card-foreground: 40 15% 96%;
-  --border: 240 6% 18%;
-  --accent: 265 92% 68%;
-  --accent-foreground: 240 12% 6%;
-  --ring: 265 92% 68%;
-  --hero-glow: 265 85% 55%;
+
+/* ─────────────────────────────────────────────
+   Apple
+   Ultra-minimal, black/white/silver
+   ───────────────────────────────────────────── */
+html[data-theme='apple'] {
+  --background: 0 0% 96%;            /* #F5F5F7 */
+  --card: 0 0% 100%;                 /* #FFFFFF */
+  --muted: 0 0% 92%;
+
+  --foreground: 0 0% 0%;             /* #000000 */
+  --muted-foreground: 0 0% 43%;      /* #6E6E73 */
+  --card-foreground: 0 0% 0%;
+
+  --accent: 0 0% 0%;                 /* Black accent */
+  --accent-foreground: 0 0% 100%;
+  --accent-secondary: 0 0% 43%;
+  --ring: 0 0% 0%;
+  --hero-glow: 0 0% 0%;
+
+  --border: 0 0% 88%;
+
+  --font-mono: 'SF Mono', 'JetBrains Mono', monospace;
+  --font-sans: -apple-system, 'Inter', sans-serif;
+  --font-display: -apple-system, 'Inter', sans-serif;
+
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.08);
+  --shadow-card-hover: 0 8px 30px rgba(0, 0, 0, 0.1);
+  --shadow-glow: none;
 }
 
-/*
- * Future company themes — uncomment and tune; ThemeProvider only needs the theme id.
- *
- * html[data-theme='netflix'] {
- *   --background: 0 0% 7%;
- *   --foreground: 0 0% 98%;
- *   --accent: 357 92% 47%;
- *   --accent-foreground: 0 0% 100%;
- *   --ring: 357 92% 47%;
- *   --hero-glow: 357 92% 47%;
- *   ...
- * }
- *
- * html[data-theme='google'] {
- *   --accent: 217 89% 55%;
- *   --ring: 142 70% 45%;
- *   ...
- * }
- */
+
+/* ─────────────────────────────────────────────
+   Amazon
+   Orange/dark navy, utilitarian data-dense
+   ───────────────────────────────────────────── */
+html[data-theme='amazon'] {
+  --background: 213 33% 10%;         /* #131921 */
+  --card: 213 25% 14%;
+  --muted: 213 18% 19%;
+
+  --foreground: 0 0% 100%;           /* #FFFFFF */
+  --muted-foreground: 40 5% 65%;
+  --card-foreground: 0 0% 100%;
+
+  --accent: 36 100% 50%;             /* #FF9900 */
+  --accent-foreground: 213 33% 10%;
+  --accent-secondary: 36 95% 60%;
+  --ring: 36 100% 50%;
+  --hero-glow: 36 100% 50%;
+
+  --border: 213 15% 24%;
+
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'Inter', 'Amazon Ember', sans-serif;
+  --font-display: 'Inter', 'Amazon Ember', sans-serif;
+
+  --shadow-glow: 0 0 20px hsl(36 100% 50% / 0.2);
+}
+
+
+/* ─────────────────────────────────────────────
+   Netflix
+   Cinematic red/black, bold typographic hierarchy
+   ───────────────────────────────────────────── */
+html[data-theme='netflix'] {
+  --background: 0 0% 8%;             /* #141414 */
+  --card: 0 0% 10%;                  /* #1a1a1a */
+  --muted: 0 0% 16%;                 /* #2a2a2a */
+
+  --foreground: 0 0% 100%;           /* #FFFFFF */
+  --muted-foreground: 0 0% 70%;      /* #b3b3b3 */
+  --card-foreground: 0 0% 100%;
+
+  --accent: 357 92% 47%;             /* #E50914 */
+  --accent-foreground: 0 0% 100%;
+  --accent-secondary: 357 80% 45%;
+  --ring: 357 92% 47%;
+  --hero-glow: 357 92% 47%;
+
+  --border: 0 0% 20%;
+
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'Inter', 'Helvetica Neue', sans-serif;
+  --font-display: 'Inter', 'Helvetica Neue', sans-serif;
+
+  --shadow-glow: 0 0 20px hsl(357 92% 47% / 0.2);
+}
+
+
+/* ─────────────────────────────────────────────
+   Google
+   Multi-color accent on white, Material Design
+   ───────────────────────────────────────────── */
+html[data-theme='google'] {
+  --background: 0 0% 100%;           /* #FFFFFF */
+  --card: 0 0% 98%;
+  --muted: 0 0% 94%;
+
+  --foreground: 220 5% 13%;          /* #202124 */
+  --muted-foreground: 220 5% 40%;
+  --card-foreground: 220 5% 13%;
+
+  --accent: 217 89% 55%;             /* #4285F4 — Google Blue */
+  --accent-foreground: 0 0% 100%;
+  --accent-secondary: 142 70% 45%;   /* Google Green */
+  --ring: 217 89% 55%;
+  --hero-glow: 217 89% 55%;
+
+  --border: 0 0% 88%;
+
+  --font-mono: 'JetBrains Mono', 'Roboto Mono', monospace;
+  --font-sans: 'Inter', 'Roboto', sans-serif;
+  --font-display: 'Inter', 'Roboto', sans-serif;
+
+  --shadow-card: 0 1px 3px rgba(60, 64, 67, 0.15);
+  --shadow-card-hover: 0 4px 16px rgba(60, 64, 67, 0.2);
+  --shadow-glow: 0 0 20px hsl(217 89% 55% / 0.15);
+}

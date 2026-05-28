@@ -1,13 +1,18 @@
 import { useLenis } from '@/hooks/useLenis'
-import { BackendArchitectureSection } from '@/features/about/BackendArchitectureSection'
-import { ContactSection } from '@/features/contact/ContactSection'
-import { ExperienceTimeline } from '@/features/experience/ExperienceTimeline'
-import { HeroSection } from '@/features/hero/HeroSection'
-import { ProjectsSection } from '@/features/projects/ProjectsSection'
-import { SkillsGrid } from '@/features/skills/SkillsGrid'
 import { motion } from 'framer-motion'
 import { useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { NAV_OFFSET } from '@/utils/constants'
+
+// Sections
+import { HeroSection } from '@/sections/Hero/HeroSection'
+import { AIToolsSection } from '@/sections/AITools/AIToolsSection'
+import { ProjectsSection } from '@/sections/Projects/ProjectsSection'
+import { ExperienceSection } from '@/sections/Experience/ExperienceSection'
+import { TechStackSection } from '@/sections/TechStack/TechStackSection'
+import { ImpactSection } from '@/sections/Impact/ImpactSection'
+import { CertificationsSection } from '@/sections/Certifications/CertificationsSection'
+import { ContactSection } from '@/sections/Contact/ContactSection'
 
 const pageVariants = {
   initial: { opacity: 0, y: 12 },
@@ -20,7 +25,7 @@ const pageVariants = {
 }
 
 /**
- * Landing page: compose feature sections. Section ids align with Navbar hash targets.
+ * Landing page: compose all 8 feature sections in order.
  */
 export function Home() {
   const location = useLocation()
@@ -33,8 +38,11 @@ export function Home() {
 
     const run = () => {
       const sel = `#${id}`
-      if (lenis) lenis.scrollTo(sel, { offset: -72, duration: 1.1 })
-      else document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth' })
+      if (lenis) {
+        lenis.scrollTo(sel, { offset: NAV_OFFSET, duration: 1.1 })
+      } else {
+        document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth' })
+      }
       navigate(location.pathname, { replace: true, state: {} })
     }
 
@@ -48,12 +56,15 @@ export function Home() {
       initial="initial"
       animate="animate"
       exit="exit"
+      className="flex flex-col"
     >
       <HeroSection />
-      <BackendArchitectureSection />
-      <SkillsGrid />
+      <AIToolsSection />
       <ProjectsSection />
-      <ExperienceTimeline />
+      <ExperienceSection />
+      <TechStackSection />
+      <ImpactSection />
+      <CertificationsSection />
       <ContactSection />
     </motion.div>
   )

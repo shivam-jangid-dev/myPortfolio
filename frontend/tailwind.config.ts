@@ -3,6 +3,11 @@ import type { Config } from 'tailwindcss'
 /**
  * Semantic colors only — all values resolve from CSS variables on :root / [data-theme].
  * Adding a company theme = new variable block in styles/theme.css only (no JS changes).
+ *
+ * Terminal Noir additions:
+ *  - font-mono mapped to --font-mono (JetBrains Mono)
+ *  - accent-secondary for blue highlights
+ *  - Terminal-specific keyframes and utilities
  */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
@@ -18,12 +23,14 @@ export default {
         border: 'hsl(var(--border) / <alpha-value>)',
         accent: 'hsl(var(--accent) / <alpha-value>)',
         'accent-foreground': 'hsl(var(--accent-foreground) / <alpha-value>)',
+        'accent-secondary': 'hsl(var(--accent-secondary) / <alpha-value>)',
         ring: 'hsl(var(--ring) / <alpha-value>)',
         hero: 'hsl(var(--hero-glow) / <alpha-value>)',
       },
       fontFamily: {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
         display: ['var(--font-display)', 'var(--font-sans)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-mono)', 'Consolas', 'monospace'],
       },
       borderRadius: {
         lg: 'var(--radius-lg)',
@@ -36,12 +43,27 @@ export default {
       },
       keyframes: {
         'fade-up': {
-          '0%': { opacity: '0', transform: 'translateY(12px)' },
+          '0%': { opacity: '0', transform: 'translateY(16px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'blink-cursor': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0' },
+        },
+        'pulse-glow': {
+          '0%, 100%': { boxShadow: '0 0 4px hsl(var(--accent) / 0.4)' },
+          '50%': { boxShadow: '0 0 12px hsl(var(--accent) / 0.7), 0 0 24px hsl(var(--accent) / 0.3)' },
+        },
+        'terminal-open': {
+          '0%': { opacity: '0', transform: 'scale(0.96) translateY(8px)' },
+          '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
         },
       },
       animation: {
         'fade-up': 'fade-up 0.6s ease-out forwards',
+        'blink-cursor': 'blink-cursor 1s step-end infinite',
+        'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+        'terminal-open': 'terminal-open 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards',
       },
     },
   },

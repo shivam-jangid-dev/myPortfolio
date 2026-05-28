@@ -1,19 +1,12 @@
-import { useLenis } from '@/hooks/useLenis'
-import { ThemeToggle } from '@/components/ThemeToggle'
-import { profile } from '@/config/profile'
-import { cn } from '@/utils/cn'
-import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-
-const nav = [
-  { id: 'hero', label: 'Home' },
-  { id: 'about', label: 'About' },
-  { id: 'skills', label: 'Skills' },
-  { id: 'projects', label: 'Projects' },
-  { id: 'experience', label: 'Experience' },
-  { id: 'contact', label: 'Contact' },
-]
+import { AnimatePresence, motion } from 'framer-motion'
+import { useLenis } from '@/hooks/useLenis'
+import { ThemeSwitcher } from '@/components/ThemeSwitcher'
+import { profile } from '@/config/profile'
+import { navLinks } from '@/config/navLinks'
+import { NAV_OFFSET } from '@/utils/constants'
+import { cn } from '@/utils/cn'
 
 export function Navbar() {
   const lenis = useLenis()
@@ -28,16 +21,19 @@ export function Navbar() {
       return
     }
     const sel = `#${id}`
-    if (lenis) lenis.scrollTo(sel, { offset: -72, duration: 1.1 })
-    else document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth' })
+    if (lenis) {
+      lenis.scrollTo(sel, { offset: NAV_OFFSET, duration: 1.1 })
+    } else {
+      document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth' })
+    }
   }
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 border-b border-border/60 bg-background/75 backdrop-blur-md">
-      <div className="mx-auto flex h-[4.25rem] max-w-6xl items-center justify-between px-4 sm:px-6">
+    <header className="fixed left-0 right-0 top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+      <div className="mx-auto flex h-[4.25rem] max-w-7xl items-center justify-between px-4 sm:px-6">
         <Link
           to="/"
-          className="font-display text-lg font-semibold tracking-tight text-foreground"
+          className="font-mono text-lg font-bold tracking-tight text-foreground flex items-center gap-2"
           onClick={(e) => {
             if (pathname === '/') {
               e.preventDefault()
@@ -45,34 +41,32 @@ export function Navbar() {
             }
           }}
         >
-          {profile.name.split(' ')[0]}
-          <span className="text-accent">.</span>
+          <span className="text-accent">{'>_'}</span>
+          <span>{profile.name.toLowerCase().replace(' ', '_')}</span>
         </Link>
 
-        <nav className="hidden items-center gap-8 md:flex" aria-label="Primary">
-          {nav.map((item) => (
+        {/* Desktop Nav */}
+        <nav className="hidden items-center gap-6 md:flex" aria-label="Primary">
+          {navLinks.map((item) => (
             <button
               key={item.id}
               type="button"
               onClick={() => scrollTo(item.id)}
-              className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
+              className="text-sm font-mono text-muted-foreground transition hover:text-accent"
             >
-              {item.label}
+              <span className="opacity-50 mr-1">./</span>
+              {item.label.toLowerCase()}
             </button>
           ))}
-          <Link
-            to="/projects/ai-portfolio"
-            className="text-sm font-medium text-muted-foreground transition hover:text-foreground"
-          >
-            Case study
-          </Link>
         </nav>
 
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
+        <div className="flex items-center gap-4">
+          <ThemeSwitcher />
+          
+          {/* Mobile Menu Toggle */}
           <button
             type="button"
-            className="relative flex h-10 w-10 items-center justify-center rounded-md border border-border md:hidden"
+            className="relative flex h-10 w-10 items-center justify-center rounded-md border border-border md:hidden text-foreground hover:bg-muted"
             aria-expanded={open}
             aria-label="Menu"
             onClick={() => setOpen((o) => !o)}
@@ -80,50 +74,47 @@ export function Navbar() {
             <span className="sr-only">Toggle menu</span>
             <span
               className={cn(
-                'absolute left-2.5 top-[13px] h-0.5 w-5 origin-center bg-foreground transition',
-                open && 'translate-y-[7px] rotate-45',
+                'absolute left-2.5 top-[13px] h-[2px] w-5 origin-center bg-current transition-all',
+                open && 'translate-y-[6px] rotate-45',
               )}
             />
-            <span className={cn('absolute left-2.5 top-[19px] h-0.5 w-5 bg-foreground transition', open && 'opacity-0')} />
+            <span
+              className={cn('absolute left-2.5 top-[19px] h-[2px] w-5 bg-current transition-all', open && 'opacity-0')}
+            />
             <span
               className={cn(
-                'absolute left-2.5 top-[25px] h-0.5 w-5 origin-center bg-foreground transition',
-                open && '-translate-y-[7px] -rotate-45',
+                'absolute left-2.5 top-[25px] h-[2px] w-5 origin-center bg-current transition-all',
+                open && '-translate-y-[6px] -rotate-45',
               )}
             />
           </button>
         </div>
       </div>
 
+      {/* Mobile Drawer */}
       <AnimatePresence>
-        {open ? (
+        {open && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="border-b border-border bg-background md:hidden"
+            className="border-b border-border bg-background md:hidden overflow-hidden"
           >
-            <div className="flex flex-col gap-1 px-4 py-4">
-              {nav.map((item) => (
+            <div className="flex flex-col gap-2 px-4 py-4 font-mono">
+              {navLinks.map((item) => (
                 <button
                   key={item.id}
                   type="button"
-                  className="rounded-md px-3 py-3 text-left text-sm font-medium text-foreground hover:bg-muted"
+                  className="rounded-md px-4 py-3 text-left text-sm font-medium text-muted-foreground hover:bg-muted hover:text-accent transition-colors flex items-center gap-2"
                   onClick={() => scrollTo(item.id)}
                 >
-                  {item.label}
+                  <span className="opacity-50">./</span>
+                  {item.label.toLowerCase()}
                 </button>
               ))}
-              <Link
-                to="/projects/ai-portfolio"
-                className="rounded-md px-3 py-3 text-sm font-medium text-foreground hover:bg-muted"
-                onClick={() => setOpen(false)}
-              >
-                Case study
-              </Link>
             </div>
           </motion.div>
-        ) : null}
+        )}
       </AnimatePresence>
     </header>
   )
