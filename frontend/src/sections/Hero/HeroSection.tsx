@@ -6,6 +6,9 @@ import { TerminalLine } from '@/components/TerminalLine'
 import { useTypingEffect } from '@/hooks/useTypingEffect'
 import { profile } from '@/config/profile'
 import { ANIMATION } from '@/utils/constants'
+import { BinaryPortrait, type BinaryPortraitProps } from '@/components/BinaryPortrait'
+// Temporarily using hero.png to avoid Vite import error until you drop shivam.jpg into the folder!
+import profileImg from '@/assets/hero.png' 
 
 /**
  * Renders a single typing line. Notifies parent when complete.
@@ -37,6 +40,7 @@ function TypingLine({
 
 export function HeroSection() {
   const [currentLineIndex, setCurrentLineIndex] = useState(0)
+  const [charMode, setCharMode] = useState<BinaryPortraitProps['charMode']>('binary')
   const introLines = profile.cliIntro || []
 
   // Auto-advance if a line is just an output (no typing animation needed)
@@ -64,6 +68,8 @@ export function HeroSection() {
   const scrollToProjects = () => {
     document.getElementById('projects')?.scrollIntoView({ behavior: 'smooth' })
   }
+
+  const modes: Array<BinaryPortraitProps['charMode']> = ['binary', 'stack', 'matrix', 'blocks']
 
   return (
     <section id="hero" className="relative min-h-[100dvh] pt-[4.25rem] flex items-center justify-center overflow-hidden">
@@ -113,42 +119,51 @@ export function HeroSection() {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
-                className="flex flex-wrap items-center gap-4"
+                className="flex flex-col gap-4 items-start"
               >
-                <Button onClick={scrollToProjects} className="font-mono shadow-glow border border-accent/50 hover:bg-accent/90">
-                  <span className="mr-2 opacity-70">./</span>view_projects.sh
-                </Button>
-                <Button variant="outline" onClick={scrollToContact} className="font-mono">
-                  <span className="mr-2 opacity-70">./</span>contact.sh
-                </Button>
+                <div className="flex flex-wrap items-center gap-4">
+                  <Button onClick={scrollToProjects} className="font-mono shadow-glow border border-accent/50 hover:bg-accent/90">
+                    <span className="mr-2 opacity-70">./</span>view_projects.sh
+                  </Button>
+                  <Button variant="outline" onClick={scrollToContact} className="font-mono">
+                    <span className="mr-2 opacity-70">./</span>contact.sh
+                  </Button>
+                </div>
+                
+                {/* Char Mode Switcher */}
+                <div className="flex items-center gap-3 mt-2 font-mono text-xs">
+                  <span className="text-muted-foreground opacity-70">--render-mode:</span>
+                  <div className="flex gap-2">
+                    {modes.map(mode => (
+                      <button
+                        key={mode}
+                        onClick={() => setCharMode(mode)}
+                        className={`transition-colors hover:text-accent ${charMode === mode ? 'text-accent font-bold' : 'text-muted-foreground'}`}
+                      >
+                        [{mode}]
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Right: Media (Video/Portrait) */}
+        {/* Right: BinaryPortrait */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, delay: 0.5 }}
-          className="hidden lg:block relative"
+          className="hidden lg:flex items-center justify-center relative w-full aspect-[4/5]"
         >
-          <div className="absolute inset-0 bg-accent/20 rounded-2xl blur-3xl" />
-          <div className="relative rounded-2xl overflow-hidden border border-border bg-card shadow-2xl">
-            {/* Try to load the video, if it fails or isn't there, fallback to image or just a styled box */}
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-auto object-cover opacity-80"
-              poster="/src/assets/hero.png" // Fallback poster
-            >
-              <source src="/src/assets/mp_.mp4" type="video/mp4" />
-            </video>
-            {/* Scanline over media to integrate it into the theme */}
-            <div className="absolute inset-0 scanline-overlay opacity-30 mix-blend-overlay" />
-          </div>
+          <BinaryPortrait 
+            src={profileImg} 
+            charMode={charMode} 
+            width={400} 
+            height={500} 
+            className="w-full h-full object-contain" 
+          />
         </motion.div>
       </div>
     </section>
