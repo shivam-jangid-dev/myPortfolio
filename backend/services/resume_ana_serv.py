@@ -1,5 +1,4 @@
 from api.routes import router
-from pydantic import BaseModel 
 from fastapi import UploadFile, File, Form, HTTPException, status
 from typing import Optional
 from llm.resume_analyzer import resume_analyzer
