@@ -1,11 +1,12 @@
 from api.routes import router
-from fastapi import UploadFile, File, Form, HTTPException, status
+from fastapi import Request, UploadFile, File, Form, HTTPException, status
 from typing import Optional
 from llm.resume_analyzer import resume_analyzer
 from langchain_community.document_loaders import PyMuPDFLoader, TextLoader, Docx2txtLoader, JSONLoader
 import base64
 import tempfile
 import os
+from middleware.rate_limiter import limiter
 
 # Define the file types you want to accept
 ALLOWED_CONTENT_TYPES = [
@@ -18,7 +19,9 @@ ALLOWED_CONTENT_TYPES = [
 ]
 
 @router.post("/resume-analysis")
+@limiter.limit("3/minute")
 async def resume_analysis(
+    request: Request,
     resume: UploadFile = File(...), 
     # Form(None) makes the JD an optional text field in the same form
     job_description: Optional[str] = Form(None) 

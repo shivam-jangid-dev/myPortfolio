@@ -1,11 +1,12 @@
 import os
 import tempfile
 import logging
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status
+from fastapi import APIRouter, Request, UploadFile, File, Form, HTTPException, status
 from fastapi.concurrency import run_in_threadpool
 
 # Note the changed import for `query_notes`
 from llm.chat_with_notes import loader, get_embedder, vector_store, chat_with_notes_agent
+from middleware.rate_limiter import limiter
 
 router = APIRouter()
 
@@ -16,7 +17,8 @@ ALLOWED_CONTENT_TYPES = [
 ]
 
 @router.post("/chat-with-notes")
-async def chat_with_notes(user_query: str = Form(None), notes: UploadFile = File(None)):
+@limiter.limit("3/minute")
+async def chat_with_notes(request: Request, user_query: str = Form(None), notes: UploadFile = File(None)):
     temp_file_path = None
     try:
         if notes:
