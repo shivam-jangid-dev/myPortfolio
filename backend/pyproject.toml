@@ -1,7 +1,7 @@
 [project]
-name = "backend"
+name = "shivam-portfolio-backend"
 version = "0.1.0"
-description = "Add your description here"
+description = "FastAPI backend for Shivam Jangid's AI portfolio — Resume Analyser and Chat-with-Notes."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

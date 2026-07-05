@@ -1,20 +1,60 @@
+import os
+import logging
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
-from api.routes import router
-from middleware.rate_limiter import limiter
+# ── Logging ───────────────────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
 
-app = FastAPI()
+# ── App ───────────────────────────────────────────────────────────────────────
+app = FastAPI(
+    title="Shivam Jangid — Portfolio Backend",
+    description="FastAPI backend powering Resume Analyser and Chat-with-Notes AI tools.",
+    version="1.0.0",
+)
 
-# Attach the rate limiter to the app state and register its 429 error handler
+# ── CORS ──────────────────────────────────────────────────────────────────────
+# Set ALLOWED_ORIGINS in your Railway environment (comma-separated URLs).
+# e.g. ALLOWED_ORIGINS=https://shivam.vercel.app,https://shivam.dev
+_raw_origins = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:5173,http://localhost:3000",  # local dev defaults
+)
+_allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_allowed_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+
+# ── Rate limiting ─────────────────────────────────────────────────────────────
+from middleware.rate_limiter import limiter   # noqa: E402
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Connect your API routes to the main app
-app.include_router(router)
+# ── Routes ────────────────────────────────────────────────────────────────────
+# Import order matters: service modules register their routes on their own
+# routers, which are then explicitly included here.
+from api.routes import router as main_router                    # noqa: E402  /health
+from services.chatWithNotes import router as notes_router       # noqa: E402  /chat-with-notes
+from services.resume_ana_serv import router as resume_router    # noqa: E402  /resume-analysis
 
+app.include_router(main_router)
+app.include_router(notes_router)
+app.include_router(resume_router)
+
+# ── Entry point ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    # You set the port right here (e.g., port 8080)
-    uvicorn.run("main:app", host="127.0.0.1", port=8080, reload=True)
+    port = int(os.getenv("PORT", 8080))
+    # host="0.0.0.0" is required for Railway to reach the container.
+    # reload=False in production (reload=True is dev-only).
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
