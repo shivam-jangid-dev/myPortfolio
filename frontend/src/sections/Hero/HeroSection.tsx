@@ -76,9 +76,25 @@ export function HeroSection() {
       {/* Background Grid Pattern */}
       <div className="absolute inset-0 bg-grid-fade opacity-30 pointer-events-none" />
 
-      <div className="container px-4 sm:px-6 mx-auto relative z-10 grid lg:grid-cols-[1fr_400px] gap-12 items-center">
+      <div className="container px-4 sm:px-6 mx-auto relative z-10 grid lg:grid-cols-[1fr_400px] gap-8 lg:gap-12 items-center">
+        {/* Right: BinaryPortrait — visible on all screens, top on mobile via order-first, right column on lg+ */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+          className="flex order-first lg:order-last items-center justify-center relative w-[85vw] sm:w-[75vw] lg:w-full max-w-[85vw] sm:max-w-[75vw] lg:max-w-none mx-auto aspect-[4/5]"
+        >
+          <BinaryPortrait 
+            src={profileImg} 
+            charMode={charMode} 
+            width={400} 
+            height={500} 
+            className="w-full h-full object-contain" 
+          />
+        </motion.div>
+
         {/* Left: Terminal */}
-        <div className="flex flex-col gap-8">
+        <div className="flex flex-col gap-8 order-last lg:order-first">
           <Terminal title="visitor@shivam.dev:~" className="min-h-[380px] w-full max-w-3xl shadow-glow">
             {introLines.slice(0, currentLineIndex + 1).map((line, idx) => {
               const isCurrent = idx === currentLineIndex
@@ -149,22 +165,6 @@ export function HeroSection() {
             )}
           </AnimatePresence>
         </div>
-
-        {/* Right: BinaryPortrait */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.5 }}
-          className="hidden lg:flex items-center justify-center relative w-full aspect-[4/5]"
-        >
-          <BinaryPortrait 
-            src={profileImg} 
-            charMode={charMode} 
-            width={400} 
-            height={500} 
-            className="w-full h-full object-contain" 
-          />
-        </motion.div>
       </div>
     </section>
   )

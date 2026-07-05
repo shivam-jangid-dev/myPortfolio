@@ -14,7 +14,7 @@ export const projects: Project[] = [
       'RAG-oriented document workflows',
       'Split deploy: Vercel + Railway',
     ],
-    links: [{ label: 'Live site', href: 'https://shivam.dev' }],
+    // links: [{ label: 'Live site', href: 'https://shivam.dev' }],
   },
   {
     id: 'cli-chatbot',
