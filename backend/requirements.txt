@@ -1,0 +1,10 @@
+langchain
+langgraph
+python-dotenv
+langchain-groq
+pymupdf
+langchain-community
+sentence-transformers
+langchain-text-splitters
+chromadb
+slowapi
