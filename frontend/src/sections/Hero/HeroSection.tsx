@@ -8,7 +8,7 @@ import { profile } from '@/config/profile'
 import { ANIMATION } from '@/utils/constants'
 import { BinaryPortrait, type BinaryPortraitProps } from '@/components/BinaryPortrait'
 // Temporarily using hero.png to avoid Vite import error until you drop shivam.jpg into the folder!
-import profileImg from '@/assets/hero.png' 
+import profileImg from '@/assets/hero.png'
 
 /**
  * Renders a single typing line. Notifies parent when complete.
@@ -84,18 +84,18 @@ export function HeroSection() {
           transition={{ duration: 0.8, delay: 0.5 }}
           className="flex order-first lg:order-last items-center justify-center relative w-[85vw] sm:w-[75vw] lg:w-full max-w-[85vw] sm:max-w-[75vw] lg:max-w-none mx-auto aspect-[4/5]"
         >
-          <BinaryPortrait 
-            src={profileImg} 
-            charMode={charMode} 
-            width={400} 
-            height={500} 
-            className="w-full h-full object-contain" 
+          <BinaryPortrait
+            src={profileImg}
+            charMode={charMode}
+            width={400}
+            height={500}
+            className="w-full h-full object-contain"
           />
         </motion.div>
 
         {/* Left: Terminal */}
         <div className="flex flex-col gap-8 order-last lg:order-first">
-          <Terminal title="visitor@shivam.dev:~" className="min-h-[380px] w-full max-w-3xl shadow-glow">
+          <Terminal title="visitor@shivamjangid.dev:~" className="min-h-[380px] w-full max-w-3xl shadow-glow">
             {introLines.slice(0, currentLineIndex + 1).map((line, idx) => {
               const isCurrent = idx === currentLineIndex
 
@@ -124,7 +124,7 @@ export function HeroSection() {
 
             {/* Blinking cursor at the end when sequence is done */}
             {isSequenceComplete && (
-              <TerminalLine prompt="visitor@shivam.dev:~$" command="" showCursor />
+              <TerminalLine prompt="visitor@shivamjangid.dev:~$" command="" showCursor />
             )}
           </Terminal>
 
@@ -145,7 +145,7 @@ export function HeroSection() {
                     <span className="mr-2 opacity-70">./</span>contact.sh
                   </Button>
                 </div>
-                
+
                 {/* Char Mode Switcher */}
                 <div className="flex items-center gap-3 mt-2 font-mono text-xs">
                   <span className="text-muted-foreground opacity-70">--render-mode:</span>
