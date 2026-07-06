@@ -3,7 +3,7 @@ import type { Project } from './types'
 export const projects: Project[] = [
   {
     id: 'ai-portfolio',
-    title: 'AI Portfolio Site (shivam.dev)',
+    title: 'AI Portfolio Site (shivamjangid.dev)',
     summary:
       'Personal brand site with live AI tools: Resume Analyzer, PDF Summarizer, and Cold Email Writer.',
     description:
@@ -14,25 +14,27 @@ export const projects: Project[] = [
       'RAG-oriented document workflows',
       'Split deploy: Vercel + Railway',
     ],
-    // links: [{ label: 'Live site', href: 'https://shivam.dev' }],
+    links: [{ label: 'Live site', href: '' }],
   },
   {
     id: 'cli-chatbot',
-    title: 'CLI AI Chatbot',
-    summary: 'Terminal chatbot with streaming, memory, modes, and session save.',
+    title: 'CrackAi',
+    summary: 'Ai that help you crack role/job in your dream company ',
     description:
-      'A developer-focused CLI that streams responses from Claude, keeps short-term conversation memory, and supports mode switching between code, explain, and review workflows. Sessions can be saved for continuity across invocations.',
+      'CrackAi is a platform that help you crack role/job in your dream company .',
     tech: ['Python', 'Claude API', 'Streaming'],
     highlights: ['Streaming responses', 'Conversation memory', 'Mode switching (code / explain / review)'],
+     links: [{ label: 'comming soon...', href: '' }],
   },
   {
-    id: 'chatgpt-clone',
-    title: 'ChatGPT Clone',
-    summary: 'Full-stack AI chatbot with Flask backend and responsive Tailwind UI.',
+    id: 'ai-travel-agent',
+    title: 'Ai Travel Agent',
+    summary: 'Ai Travel Agent that help you plan your travel.',
     description:
-      'End-to-end chat experience integrating OpenAI GPT-3.5 from a Flask backend with a responsive Tailwind CSS frontend. Demonstrates classic request/response and UI state patterns for conversational AI.',
-    tech: ['Flask', 'GPT-3.5', 'Tailwind CSS', 'JavaScript'],
-    highlights: ['REST integration with OpenAI', 'Responsive chat UI'],
+      'Ai Travel Agent that help you plan your travel.',
+    tech: ['Python', 'Claude API', 'Streaming'],
+    highlights: ['Streaming responses', 'Conversation memory', 'Mode switching (code / explain / review)'],
+     links: [{ label: 'comming soon...', href: '' }],
   },
 ]
 

@@ -13,7 +13,7 @@ interface TerminalLineProps {
 }
 
 export function TerminalLine({
-  prompt = 'visitor@shivam.dev:~$',
+  prompt = 'visitor@shivamjangid.dev:~$',
   command,
   output,
   className,
@@ -39,7 +39,7 @@ export function TerminalLine({
           )}
         </div>
       )}
-      
+
       {output && (
         <div className="text-muted-foreground whitespace-pre-wrap">
           {output}
