@@ -1,39 +1,26 @@
 """
 LLM pipeline for Chat-with-Notes.
 
-Key design decisions
-────────────────────
-- Each uploaded document gets its own ChromaDB collection (named by session_id).
-  This prevents data leaking between users and avoids unbounded growth of a single
-  shared collection.
-- query_notes is built as a tool factory (make_query_tool) so the collection name
-  can be captured per-request via closure.
-- print() replaced by logging throughout.
-- show_progress_bar disabled in encode() to keep production logs clean.
+Architecture (full-context approach):
+  Upload phase : Extract text from the document → store in memory.
+  Query phase  : Pass the full document text as context to the Groq LLM.
+
+Why not embeddings?
+  The old sentence-transformers + ChromaDB approach required running a neural
+  network on CPU for every upload, adding 5-10 s of latency.  Groq's Llama 3.3
+  70B has a 128 K-token context window, so most documents fit in a single call —
+  giving better coherent reasoning and near-instant upload processing.
 """
 
 import logging
-import uuid
-import chromadb
-import numpy as np                              # noqa: F401 – kept for numpy safety in tolist()
-from typing import List
 from langchain_core.documents import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_community.document_loaders import PyMuPDFLoader, Docx2txtLoader
-from sentence_transformers import SentenceTransformer
-from langchain.tools import tool
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain_core.prompts import ChatPromptTemplate
 from .model_init import model_initialization
 
 logger = logging.getLogger(__name__)
 
-# ── Constants ─────────────────────────────────────────────────────────────────
-
-VECTOR_DB_PATH = "./vector_db"
-
-
-# ── Document loader ───────────────────────────────────────────────────────────
+# ── Document loader ────────────────────────────────────────────────────────────
 
 def loader(file_path: str, file_type: str) -> list[Document]:
     try:
@@ -49,130 +36,51 @@ def loader(file_path: str, file_type: str) -> list[Document]:
         return []
 
 
-# ── Embedding generator ───────────────────────────────────────────────────────
+# ── In-memory session store ────────────────────────────────────────────────────
+# Maps session_id → extracted document text.
+# NOTE: Lost on server restart — the frontend should prompt re-upload in that case.
 
-class EmbeddingGenerator:
-    def __init__(
-        self,
-        model_name: str = "all-MiniLM-L6-v2",
-        chunk_size: int = 1000,
-        chunk_overlap: int = 200,
-    ):
-        self.model = SentenceTransformer(model_name)
-        self.chunk_size = chunk_size
-        self.chunk_overlap = chunk_overlap
-        logger.info("Loaded embedding model: %s", model_name)
+# ~30 K tokens, comfortably within Groq's 128 K context window.
+_MAX_CHARS = 120_000
 
-    def chunk_document(self, documents: List[Document]) -> List[Document]:
-        if not documents:
-            return []
-        splitter = RecursiveCharacterTextSplitter(
-            chunk_size=self.chunk_size,
-            chunk_overlap=self.chunk_overlap,
-            length_function=len,
-            separators=["\n\n", "\n", " ", ""],
+_sessions: dict[str, str] = {}
+
+
+def store_document(session_id: str, documents: list[Document]) -> None:
+    """Flatten all document pages into a single string and cache by session_id."""
+    full_text = "\n\n".join(doc.page_content for doc in documents)
+    if len(full_text) > _MAX_CHARS:
+        logger.warning(
+            "Document for session '%s' is %d chars; truncating to %d.",
+            session_id, len(full_text), _MAX_CHARS,
         )
-        chunks = splitter.split_documents(documents)
-        logger.info("Split %d document(s) into %d chunks", len(documents), len(chunks))
-        return chunks
-
-    def embed_chunks(self, chunks: List[Document]) -> List[List[float]]:
-        if not chunks:
-            return []
-        texts = [chunk.page_content for chunk in chunks]
-        logger.info("Generating embeddings for %d chunks", len(texts))
-        # show_progress_bar=False keeps production logs clean
-        embeddings = self.model.encode(texts, show_progress_bar=False)
-        return embeddings.tolist()
+        full_text = full_text[:_MAX_CHARS]
+    _sessions[session_id] = full_text
+    logger.info("Stored %d chars for session '%s'.", len(full_text), session_id)
 
 
-# ── Singleton embedder (avoids reloading the model on every request) ──────────
-
-_embedder_instance = None
-
-
-def get_embedder() -> EmbeddingGenerator:
-    global _embedder_instance
-    if _embedder_instance is None:
-        _embedder_instance = EmbeddingGenerator()
-    return _embedder_instance
-
-
-# ── Vector store ──────────────────────────────────────────────────────────────
-
-def vector_store(
-    chunks: List[Document],
-    embeddings: List[List[float]],
-    collection_name: str,          # required: per-session ID prevents cross-user leakage
-) -> chromadb.Collection:
+def chat_with_notes_agent(query: str, session_id: str) -> dict:
     """
-    Persist chunks and their embeddings in a per-session ChromaDB collection.
-    Using a unique collection_name per upload ensures users never see each other's data.
+    Answer a question using the full document text as LLM context.
+    No embedding or vector search — the document is passed directly in the prompt.
     """
-    client = chromadb.PersistentClient(path=VECTOR_DB_PATH)
-    collection = client.get_or_create_collection(name=collection_name)
+    text = _sessions.get(session_id)
+    if not text:
+        return {
+            "output": (
+                "Session not found. This usually happens after a server restart. "
+                "Please upload your document again."
+            )
+        }
 
-    if not chunks or not embeddings:
-        logger.warning("No chunks or embeddings to store (session: %s).", collection_name)
-        return collection
-
-    texts = [chunk.page_content for chunk in chunks]
-    metadatas = [chunk.metadata for chunk in chunks]
-    ids = [str(uuid.uuid4()) for _ in range(len(chunks))]
-
-    collection.add(embeddings=embeddings, documents=texts, metadatas=metadatas, ids=ids)
-    logger.info(
-        "Stored %d vector(s) in ChromaDB collection '%s'.", len(chunks), collection_name
+    system_msg = (
+        "You are a helpful assistant that answers questions about the user's uploaded "
+        "notes or documents. Use ONLY the information in the provided document to answer. "
+        "If the answer is not in the document, say so clearly and concisely."
     )
-    return collection
-
-
-# ── Per-session query tool factory ────────────────────────────────────────────
-
-def make_query_tool(collection_name: str):
-    """
-    Return a LangChain @tool that searches the ChromaDB collection identified by
-    collection_name.  Using a factory (closure) instead of a module-level @tool
-    allows each request to query its own isolated collection.
-    """
-
-    @tool
-    def query_notes(query_text: str) -> str:
-        """Use this tool to search the user's uploaded notes for relevant information."""
-        client = chromadb.PersistentClient(path=VECTOR_DB_PATH)
-        collection = client.get_or_create_collection(name=collection_name)
-
-        embedder = get_embedder()
-        query_embedding = embedder.model.encode([query_text]).tolist()
-
-        result = collection.query(query_embeddings=query_embedding, n_results=5)
-        documents = result.get("documents", [[]])[0]
-        return "\n\n".join(documents) if documents else "No relevant notes found."
-
-    return query_notes
-
-
-# ── Agent ─────────────────────────────────────────────────────────────────────
-
-def chat_with_notes_agent(query: str, collection_name: str) -> dict:
-    """
-    Run the LangChain tool-calling agent against the given collection.
-    collection_name must match the one created during the upload step.
-    """
-    system_message = (
-        "You are a helpful assistant that answers questions about the user's notes. "
-        "Use the `query_notes` tool to find relevant information."
-    )
-    model = model_initialization(system_prompt=system_message)
-
-    query_tool = make_query_tool(collection_name)
-
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system_message),
-        ("human", "{input}"),
-        ("placeholder", "{agent_scratchpad}"),
+    model = model_initialization()
+    response = model.invoke([
+        SystemMessage(content=system_msg),
+        HumanMessage(content=f"Document:\n\n{text}\n\nQuestion: {query}"),
     ])
-
-    agent = create_tool_calling_agent(model, [query_tool], prompt)
-    agent_executor = AgentExecutor(agent=agent, tools=[query_tool])
-    return agent_executor.invoke({"input": query})
+    return {"output": response.content}

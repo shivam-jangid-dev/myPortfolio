@@ -5,7 +5,7 @@ import logging
 from fastapi import APIRouter, Request, UploadFile, File, Form, HTTPException, status
 from fastapi.concurrency import run_in_threadpool
 
-from llm.chat_with_notes import loader, get_embedder, vector_store, chat_with_notes_agent
+from llm.chat_with_notes import loader, store_document, chat_with_notes_agent
 from middleware.rate_limiter import limiter
 
 router = APIRouter()
@@ -92,10 +92,7 @@ async def chat_with_notes(
 
             def process_notes():
                 doc = loader(temp_file_path, file_extension)
-                embed = get_embedder()
-                chunked_docs = embed.chunk_document(doc)
-                embeddings = embed.embed_chunks(chunked_docs)
-                vector_store(chunked_docs, embeddings, collection_name=active_session_id)
+                store_document(active_session_id, doc)
 
             await run_in_threadpool(process_notes)
 

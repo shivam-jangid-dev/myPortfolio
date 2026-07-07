@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "chromadb>=1.5.9",
+    "fastapi>=0.115.0",
     "langchain>=1.3.4",
     "langchain-community>=0.4.2",
     "langchain-groq>=1.1.2",
@@ -13,6 +14,21 @@ dependencies = [
     "langgraph>=1.2.4",
     "pymupdf>=1.27.2.3",
     "python-dotenv>=1.2.2",
+    "python-multipart>=0.0.20",
     "sentence-transformers>=5.5.1",
     "slowapi>=0.1.10",
+    "torch>=2.7.0,<2.8.0",
+    "uvicorn[standard]>=0.34.0",
 ]
+
+# ── Force CPU-only PyTorch (no CUDA required) ─────────────────────────────────
+# uv picks up torch from the PyTorch CPU wheel index instead of PyPI's
+# CUDA-enabled build, which fails on machines without GPU drivers (WinError 1114).
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
