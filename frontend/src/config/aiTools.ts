@@ -44,20 +44,16 @@ export const AI_TOOLS: AITool[] = [
     badgeLabel: 'AI Powered',
   },
   {
-    id: 'chat-with-notes',
-    title: 'Chat with Notes',
+    id: 'repo-explainer',
+    title: 'Repo Explainer',
     description:
-      'Upload your notes or textbook and start an interactive AI chat session. Ask questions, get summaries, and explore your documents conversationally.',
-    icon: 'chat',
-    acceptedFormats: ['.pdf', '.doc', '.docx'],
-    acceptedMimeTypes: [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    ],
-    route: '/tools/chat-with-notes',
-    ctaLabel: 'Start Chat',
-    badgeLabel: 'RAG Based',
+      'Paste a public GitHub repo URL and get an AI-powered explanation — what it does, tech stack, architecture, setup steps, and notable observations.',
+    icon: 'github',
+    acceptedFormats: [],
+    acceptedMimeTypes: [],
+    route: '/tools/repo-explainer',
+    ctaLabel: 'Explain Repo',
+    badgeLabel: 'Vectorless RAG',
   },
 ]
 

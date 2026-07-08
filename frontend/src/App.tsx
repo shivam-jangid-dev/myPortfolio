@@ -5,7 +5,7 @@ import { MainLayout } from '@/layouts/MainLayout'
 import { Home } from '@/pages/Home'
 import { ProjectDetails } from '@/pages/ProjectDetails'
 import { ResumeAnalyserPage } from '@/pages/ResumeAnalyserPage'
-import { ChatWithNotesPage } from '@/pages/ChatWithNotesPage'
+import { RepoExplainerPage } from '@/pages/RepoExplainerPage'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 
 export default function App() {
@@ -25,7 +25,7 @@ export default function App() {
               <Route index element={<Home />} />
               <Route path="projects/:projectId" element={<ProjectDetails />} />
               <Route path="tools/resume-analyser" element={<ResumeAnalyserPage />} />
-              <Route path="tools/chat-with-notes" element={<ChatWithNotesPage />} />
+              <Route path="tools/repo-explainer" element={<RepoExplainerPage />} />
             </Route>
           </Routes>
         </BrowserRouter>
@@ -33,3 +33,4 @@ export default function App() {
     </ThemeProvider>
   )
 }
+

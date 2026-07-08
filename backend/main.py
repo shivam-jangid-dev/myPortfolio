@@ -15,7 +15,7 @@ logging.basicConfig(
 # ── App ───────────────────────────────────────────────────────────────────────
 app = FastAPI(
     title="Shivam Jangid — Portfolio Backend",
-    description="FastAPI backend powering Resume Analyser and Chat-with-Notes AI tools.",
+    description="FastAPI backend powering Resume Analyser and GitHub Repo Explainer AI tools.",
     version="1.0.0",
 )
 
@@ -45,11 +45,11 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # Import order matters: service modules register their routes on their own
 # routers, which are then explicitly included here.
 from api.routes import router as main_router                    # noqa: E402  /health
-from services.chatWithNotes import router as notes_router       # noqa: E402  /chat-with-notes
+from services.repo_explainer_serv import router as repo_router  # noqa: E402  /repo-explain
 from services.resume_ana_serv import router as resume_router    # noqa: E402  /resume-analysis
 
 app.include_router(main_router)
-app.include_router(notes_router)
+app.include_router(repo_router)
 app.include_router(resume_router)
 
 # ── Entry point ───────────────────────────────────────────────────────────────

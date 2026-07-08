@@ -54,27 +54,38 @@ export async function analyseResume(
   return res.json() as Promise<ResumeAnalysisResult>
 }
 
-/* ─── Chat with Notes ─── */
+/* ─── Repo Explainer ─── */
 
-export type ChatSession = {
-  sessionId: string
-  title: string
-  summary: string
-  keyPoints: string[]
+export type RepoExplanation = {
+  metadata: {
+    full_name: string
+    description: string
+    language: string
+    stars: number
+    forks: number
+    topics: string[]
+  }
+  explanation: {
+    what_it_does: string
+    tech_stack: string[]
+    architecture: string
+    getting_started: string
+    notable: string
+  }
+  files_read: string[]
+  analysis_rounds: number
 }
 
 /**
- * POST /chat-with-notes  (Phase 1 — upload)
- * Sends the notes file to the backend for ingestion.
- * Returns a ChatSession with the backend-issued session_id.
+ * POST /repo-explain
+ * Sends a GitHub repo URL to the backend for AI-powered analysis.
+ * Returns a structured explanation of the repository.
  */
-export async function uploadDocument(file: File): Promise<ChatSession> {
-  const form = new FormData()
-  form.append('notes', file)
-
-  const res = await fetch(`${API_BASE_URL}/chat-with-notes`, {
+export async function analyzeRepo(repoUrl: string): Promise<RepoExplanation> {
+  const res = await fetch(`${API_BASE_URL}/repo-explain`, {
     method: 'POST',
-    body: form,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ repo_url: repoUrl }),
   })
 
   if (!res.ok) {
@@ -82,56 +93,5 @@ export async function uploadDocument(file: File): Promise<ChatSession> {
     throw new Error(detail)
   }
 
-  const data: { message: string; session_id: string } = await res.json()
-
-  // Build the ChatSession shape the UI expects.
-  // The backend returns only session_id; title/summary/keyPoints
-  // are derived client-side (the backend does not generate them).
-  const baseName = file.name.replace(/\.[^/.]+$/, '')
-  return {
-    sessionId: data.session_id,
-    title: baseName,
-    summary:
-      'Document successfully ingested and indexed. Ask any question about its content below.',
-    keyPoints: [
-      'All pages parsed and embedded',
-      'Knowledge index ready for queries',
-      'Ask specific questions for best results',
-    ],
-  }
-}
-
-export type ChatMessage = {
-  id: string
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: number
-}
-
-/**
- * POST /chat-with-notes  (Phase 2 — query)
- * Sends the user query and session_id to the backend.
- * Returns the AI-generated answer string.
- */
-export async function sendChatMessage(
-  sessionId: string,
-  message: string,
-): Promise<string> {
-  const form = new FormData()
-  form.append('session_id', sessionId)
-  form.append('user_query', message)
-
-  const res = await fetch(`${API_BASE_URL}/chat-with-notes`, {
-    method: 'POST',
-    body: form,
-  })
-
-  if (!res.ok) {
-    const detail = await parseErrorDetail(res)
-    throw new Error(detail)
-  }
-
-  const data: { message: string; results: string; session_id: string } =
-    await res.json()
-  return data.results
+  return res.json() as Promise<RepoExplanation>
 }
