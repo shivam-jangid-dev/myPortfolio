@@ -24,7 +24,7 @@ app = FastAPI(
 # e.g. ALLOWED_ORIGINS=https://shivam.vercel.app,https://shivam.dev
 _raw_origins = os.getenv(
     "ALLOWED_ORIGINS",
-    "http://localhost:5173,http://localhost:3000",  # local dev defaults
+    "https://shivamjangid.netlify.app,http://localhost:5173,http://localhost:3000",
 )
 _allowed_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
@@ -55,6 +55,6 @@ app.include_router(resume_router)
 # ── Entry point ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8080))
-    # host="0.0.0.0" is required for Railway to reach the container.
+    # host="0.0.0.0" is required for Render to reach the container.
     # reload=False in production (reload=True is dev-only).
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)

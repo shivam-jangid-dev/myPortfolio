@@ -5,3 +5,6 @@ pymupdf
 langchain-community
 slowapi
 httpx
+python-dotenv
+requests
+langchain_core
