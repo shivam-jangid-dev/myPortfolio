@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ToolPageLayout } from '@/components/ToolPageLayout'
 import { Button } from '@/components/Button'
 import { AI_TOOLS } from '@/config/aiTools'
-import { analyzeRepo, type RepoExplanation } from '@/utils/aiToolsApi'
+import { analyzeRepo, askRepoQuestion, type RepoExplanation } from '@/utils/aiToolsApi'
 import { cn } from '@/utils/cn'
 
 const tool = AI_TOOLS.find((t) => t.id === 'repo-explainer')!
@@ -172,6 +172,105 @@ function Section({
   )
 }
 
+/* ─── Q&A Section ─── */
+type QaMessage = { role: 'user' | 'ai'; content: string }
+
+function QaSection({ sessionId }: { sessionId: string }) {
+  const [messages, setMessages] = useState<QaMessage[]>([])
+  const [question, setQuestion] = useState('')
+  const [isAsking, setIsAsking] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  
+  const handleAsk = async () => {
+    if (!question.trim() || isAsking) return
+    const q = question.trim()
+    setQuestion('')
+    setError(null)
+    setMessages((prev) => [...prev, { role: 'user', content: q }])
+    setIsAsking(true)
+    
+    try {
+      const res = await askRepoQuestion(sessionId, q)
+      setMessages((prev) => [...prev, { role: 'ai', content: res.answer }])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to get answer.')
+    } finally {
+      setIsAsking(false)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleAsk()
+    }
+  }
+
+  return (
+    <div className="mt-8 pt-8 border-t border-border">
+      <h3 className="text-lg font-bold font-mono text-foreground mb-4 flex items-center gap-2">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Follow-up Questions
+      </h3>
+      
+      {messages.length > 0 && (
+        <div className="space-y-4 mb-4">
+          {messages.map((msg, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={cn(
+                "p-4 rounded-xl text-sm font-mono leading-relaxed whitespace-pre-wrap",
+                msg.role === 'user' 
+                  ? "bg-accent/10 border border-accent/20 text-foreground ml-8 rounded-tr-sm"
+                  : "bg-card border border-border text-foreground/80 mr-8 rounded-tl-sm"
+              )}
+            >
+              <div className="text-[10px] opacity-50 mb-1 uppercase tracking-wider">{msg.role === 'user' ? 'You' : 'AI'}</div>
+              {msg.content}
+            </motion.div>
+          ))}
+          {error && (
+            <div className="text-xs font-mono text-red-400 mt-2">{error}</div>
+          )}
+        </div>
+      )}
+      
+      <div className="relative">
+        <input
+          type="text"
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Ask something else about the repo..."
+          disabled={isAsking}
+          className={cn(
+            'w-full rounded-lg border bg-background px-4 py-3 pr-12 text-sm text-foreground font-mono',
+            'placeholder:text-muted-foreground/40 outline-none transition-all',
+            'focus:ring-2 focus:ring-accent/20 border-border focus:border-accent/50',
+            isAsking && 'opacity-50 cursor-not-allowed'
+          )}
+        />
+        <button
+          onClick={handleAsk}
+          disabled={!question.trim() || isAsking}
+          className={cn(
+            "absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-md text-accent hover:bg-accent/10 transition-colors",
+            (!question.trim() || isAsking) && "opacity-50 cursor-not-allowed hover:bg-transparent"
+          )}
+        >
+          {isAsking ? (
+            <div className="h-4 w-4 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          )}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 /* ─── Results Display ─── */
 function ResultsView({
   data,
@@ -312,6 +411,8 @@ function ResultsView({
           </div>
         </div>
       </Section>
+
+      <QaSection sessionId={data.session_id} />
 
       {/* Reset Button */}
       <div className="flex justify-center pt-4">

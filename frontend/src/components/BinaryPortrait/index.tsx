@@ -65,7 +65,7 @@ export default function BinaryPortrait({
 
       // Responsive char size
       const isMobile = window.innerWidth < 768
-      const actualCharSize = isMobile ? Math.max(4, Math.floor(charSize / 2)) : charSize
+      const actualCharSize = isMobile ? Math.max(6, Math.floor(charSize * 0.8)) : charSize
 
       const theme = THEME_RAMPS[activeTheme] || THEME_RAMPS['terminal-noir']
       const chars = CHAR_MODES[charMode] || CHAR_MODES['binary']

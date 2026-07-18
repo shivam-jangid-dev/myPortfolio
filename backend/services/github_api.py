@@ -4,10 +4,18 @@ GitHub API client for the Repo Explainer.
 Provides async helpers to fetch repo metadata, file trees, and file contents
 from the GitHub REST API.  Uses an optional GITHUB_TOKEN for higher rate limits
 (60 → 5,000 req/hr).
+
+Two layers of data retrieval:
+  Eager  — 6 endpoints always fetched in parallel on first analysis.
+  On-demand — 5 endpoints fetched only when the LLM asks during follow-up Q&A.
+
+A short-lived shared cache of raw GitHub responses avoids duplicate fetching
+when multiple users analyse the same popular repo within minutes.
 """
 
 import os
 import re
+import time
 import base64
 import asyncio
 import logging
@@ -37,6 +45,48 @@ _BINARY_EXTENSIONS = frozenset({
     ".db", ".sqlite", ".sqlite3",
     ".pdf", ".doc", ".docx", ".xls", ".xlsx",
 })
+
+# ── On-demand endpoints (Phase 2) ─────────────────────────────────────────────
+ON_DEMAND_ENDPOINTS = {
+    "issues":        "https://api.github.com/repos/{owner}/{repo}/issues",
+    "pull_requests": "https://api.github.com/repos/{owner}/{repo}/pulls",
+    "releases":      "https://api.github.com/repos/{owner}/{repo}/releases",
+    "file_content":  "https://api.github.com/repos/{owner}/{repo}/contents/{path}",
+    "issue_detail":  "https://api.github.com/repos/{owner}/{repo}/issues/{number}",
+}
+
+# ── Shared repo cache ─────────────────────────────────────────────────────────
+# Keyed by "owner/repo", stores raw eager-fetch results for reuse across
+# sessions.  This is NOT per-user data — only raw GitHub API responses.
+_repo_cache: dict[str, tuple[dict, float]] = {}
+_REPO_CACHE_TTL = 600  # 10 minutes
+
+
+def get_cached_repo(owner: str, repo: str) -> Optional[dict]:
+    """Return cached eager-fetch results if still valid, else None."""
+    key = f"{owner}/{repo}"
+    entry = _repo_cache.get(key)
+    if entry is None:
+        return None
+    data, ts = entry
+    if time.time() - ts > _REPO_CACHE_TTL:
+        _repo_cache.pop(key, None)
+        return None
+    return data
+
+
+def set_repo_cache(owner: str, repo: str, data: dict) -> None:
+    """Store eager-fetch results in the shared cache."""
+    _repo_cache[f"{owner}/{repo}"] = (data, time.time())
+
+
+def purge_expired_repo_cache() -> None:
+    """Remove expired entries from the shared repo cache."""
+    now = time.time()
+    expired = [k for k, (_, ts) in _repo_cache.items() if now - ts > _REPO_CACHE_TTL]
+    for k in expired:
+        _repo_cache.pop(k, None)
+
 
 # ── URL parsing ────────────────────────────────────────────────────────────────
 
@@ -82,7 +132,7 @@ async def _get_json(client: httpx.AsyncClient, url: str) -> dict | list:
     return resp.json()
 
 
-# ── Public helpers ─────────────────────────────────────────────────────────────
+# ── Eager-set fetchers (Phase 1 — always called) ──────────────────────────────
 
 async def fetch_repo_metadata(
     client: httpx.AsyncClient, owner: str, repo: str
@@ -97,6 +147,10 @@ async def fetch_repo_metadata(
         "stargazers_count": data.get("stargazers_count", 0),
         "forks_count": data.get("forks_count", 0),
         "topics": data.get("topics", []),
+        "open_issues_count": data.get("open_issues_count", 0),
+        "created_at": data.get("created_at", ""),
+        "updated_at": data.get("updated_at", ""),
+        "license": (data.get("license") or {}).get("spdx_id", "None"),
     }
 
 
@@ -106,6 +160,71 @@ async def fetch_repo_languages(
     """Fetch language breakdown (language → bytes)."""
     data = await _get_json(client, f"{_GITHUB_API}/repos/{owner}/{repo}/languages")
     return data  # type: ignore[return-value]
+
+
+async def fetch_readme(
+    client: httpx.AsyncClient, owner: str, repo: str
+) -> str:
+    """Fetch README.md content (base64-decoded, truncated). Returns '' on error."""
+    try:
+        data = await _get_json(
+            client, f"{_GITHUB_API}/repos/{owner}/{repo}/contents/README.md"
+        )
+        if isinstance(data, list):
+            return ""
+        encoding = data.get("encoding", "")
+        content = data.get("content", "")
+        if encoding == "base64" and content:
+            decoded = base64.b64decode(content).decode("utf-8", errors="replace")
+            return decoded[:MAX_FILE_CHARS * 3]  # README gets a larger budget
+        return ""
+    except Exception as e:
+        logger.warning("Failed to fetch README: %s", e)
+        return ""
+
+
+async def fetch_contributors(
+    client: httpx.AsyncClient, owner: str, repo: str
+) -> list[dict]:
+    """Fetch top contributors (login + contributions count). Returns [] on error."""
+    try:
+        data = await _get_json(
+            client, f"{_GITHUB_API}/repos/{owner}/{repo}/contributors"
+        )
+        if not isinstance(data, list):
+            return []
+        return [
+            {"login": c.get("login", ""), "contributions": c.get("contributions", 0)}
+            for c in data[:10]
+        ]
+    except Exception as e:
+        logger.warning("Failed to fetch contributors: %s", e)
+        return []
+
+
+async def fetch_commits(
+    client: httpx.AsyncClient, owner: str, repo: str
+) -> list[dict]:
+    """Fetch recent commits (message, author, date). Returns [] on error."""
+    try:
+        data = await _get_json(
+            client, f"{_GITHUB_API}/repos/{owner}/{repo}/commits"
+        )
+        if not isinstance(data, list):
+            return []
+        commits = []
+        for c in data[:10]:
+            commit_data = c.get("commit", {})
+            author = commit_data.get("author", {})
+            commits.append({
+                "message": (commit_data.get("message") or "")[:200],
+                "author": author.get("name", "Unknown"),
+                "date": author.get("date", ""),
+            })
+        return commits
+    except Exception as e:
+        logger.warning("Failed to fetch commits: %s", e)
+        return []
 
 
 def _is_binary(path: str) -> bool:
@@ -157,6 +276,51 @@ async def fetch_file_tree(
 
     return items, truncated
 
+
+# ── Aggregate eager fetch ──────────────────────────────────────────────────────
+
+async def fetch_all_eager(
+    client: httpx.AsyncClient, owner: str, repo: str
+) -> dict:
+    """
+    Fetch all 6 eager-set endpoints in parallel.
+    Returns a dict with keys: metadata, languages, tree_items, tree_truncated,
+    readme, contributors, commits, tree_text.
+    """
+    # Metadata must come first because we need default_branch for the tree
+    metadata = await fetch_repo_metadata(client, owner, repo)
+    branch = metadata["default_branch"]
+
+    # Now fire the remaining 5 in parallel
+    languages_t, tree_t, readme_t, contributors_t, commits_t = await asyncio.gather(
+        fetch_repo_languages(client, owner, repo),
+        fetch_file_tree(client, owner, repo, branch),
+        fetch_readme(client, owner, repo),
+        fetch_contributors(client, owner, repo),
+        fetch_commits(client, owner, repo),
+    )
+
+    tree_items, tree_truncated = tree_t
+    tree_text = format_tree_for_llm(tree_items)
+    if tree_truncated:
+        tree_text = (
+            "NOTE: This is a large repository. The tree below is truncated "
+            "to the top 2 directory levels.\n\n" + tree_text
+        )
+
+    return {
+        "metadata": metadata,
+        "languages": languages_t,
+        "tree_items": tree_items,
+        "tree_truncated": tree_truncated,
+        "tree_text": tree_text,
+        "readme": readme_t,
+        "contributors": contributors_t,
+        "commits": commits_t,
+    }
+
+
+# ── File content helpers ──────────────────────────────────────────────────────
 
 async def fetch_file_content(
     client: httpx.AsyncClient, owner: str, repo: str, path: str
@@ -210,6 +374,110 @@ async def fetch_files_parallel(
 
     return contents
 
+
+# ── On-demand fetcher (Phase 2) ───────────────────────────────────────────────
+
+async def fetch_on_demand(
+    client: httpx.AsyncClient,
+    owner: str,
+    repo: str,
+    endpoint_key: str,
+    params: Optional[dict] = None,
+) -> str:
+    """
+    Fetch a single on-demand endpoint by key.
+    Returns a formatted string suitable for inclusion in an LLM prompt.
+    Returns an error message string on failure (never raises).
+    """
+    if endpoint_key not in ON_DEMAND_ENDPOINTS:
+        return f"Unknown endpoint: {endpoint_key}"
+
+    params = params or {}
+    url_template = ON_DEMAND_ENDPOINTS[endpoint_key]
+
+    try:
+        url = url_template.format(owner=owner, repo=repo, **params)
+    except KeyError as e:
+        return f"Missing required parameter for {endpoint_key}: {e}"
+
+    try:
+        data = await _get_json(client, url)
+    except Exception as e:
+        return f"Failed to fetch {endpoint_key}: {e}"
+
+    # Format the response based on the endpoint type
+    return _format_on_demand(endpoint_key, data)
+
+
+def _format_on_demand(endpoint_key: str, data: dict | list) -> str:
+    """Format raw GitHub API response into LLM-readable text."""
+    if endpoint_key == "issues":
+        if not isinstance(data, list) or not data:
+            return "No open issues found."
+        lines = [f"Open issues ({len(data)} shown):"]
+        for issue in data[:15]:
+            labels = ", ".join(l.get("name", "") for l in issue.get("labels", []))
+            label_str = f" [{labels}]" if labels else ""
+            lines.append(
+                f"  #{issue.get('number', '?')}: {issue.get('title', 'Untitled')}"
+                f"{label_str} — {issue.get('state', 'open')}"
+            )
+        return "\n".join(lines)
+
+    if endpoint_key == "pull_requests":
+        if not isinstance(data, list) or not data:
+            return "No open pull requests found."
+        lines = [f"Open pull requests ({len(data)} shown):"]
+        for pr in data[:15]:
+            lines.append(
+                f"  #{pr.get('number', '?')}: {pr.get('title', 'Untitled')}"
+                f" — by {pr.get('user', {}).get('login', 'unknown')}"
+            )
+        return "\n".join(lines)
+
+    if endpoint_key == "releases":
+        if not isinstance(data, list) or not data:
+            return "No releases found."
+        lines = [f"Releases ({min(len(data), 10)} shown):"]
+        for rel in data[:10]:
+            lines.append(
+                f"  {rel.get('tag_name', '?')}: {rel.get('name', 'Untitled')}"
+                f" — {rel.get('published_at', 'unknown date')}"
+            )
+        return "\n".join(lines)
+
+    if endpoint_key == "file_content":
+        if isinstance(data, list):
+            # It's a directory listing
+            lines = ["Directory contents:"]
+            for item in data[:30]:
+                lines.append(f"  {item.get('type', '?')}: {item.get('name', '?')}")
+            return "\n".join(lines)
+        encoding = data.get("encoding", "")
+        content = data.get("content", "")
+        if encoding == "base64" and content:
+            decoded = base64.b64decode(content).decode("utf-8", errors="replace")
+            return decoded[:MAX_FILE_CHARS]
+        return "Unable to decode file content."
+
+    if endpoint_key == "issue_detail":
+        title = data.get("title", "Untitled")
+        body = (data.get("body") or "No description.")[:1500]
+        state = data.get("state", "unknown")
+        user = data.get("user", {}).get("login", "unknown")
+        labels = ", ".join(l.get("name", "") for l in data.get("labels", []))
+        return (
+            f"Issue #{data.get('number', '?')}: {title}\n"
+            f"State: {state} | Author: {user} | Labels: {labels or 'none'}\n\n"
+            f"{body}"
+        )
+
+    # Fallback: dump a truncated JSON representation
+    import json
+    return json.dumps(data, indent=2, default=str)[:3000]
+
+
+# ── Tree formatting ───────────────────────────────────────────────────────────
 
 def format_tree_for_llm(tree_items: list[dict]) -> str:
     """

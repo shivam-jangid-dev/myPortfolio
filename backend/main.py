@@ -1,4 +1,5 @@
 import os
+import asyncio
 import logging
 import uvicorn
 from fastapi import FastAPI
@@ -32,7 +33,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
     allow_credentials=False,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["*"],
 )
 
@@ -46,11 +47,20 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # routers, which are then explicitly included here.
 from api.routes import router as main_router                    # noqa: E402  /health
 from services.repo_explainer_serv import router as repo_router  # noqa: E402  /repo-explain
+from services.repo_explainer_serv import session_cleanup_loop   # noqa: E402
 from services.resume_ana_serv import router as resume_router    # noqa: E402  /resume-analysis
 
 app.include_router(main_router)
 app.include_router(repo_router)
 app.include_router(resume_router)
+
+
+# ── Startup events ────────────────────────────────────────────────────────────
+@app.on_event("startup")
+async def _start_background_tasks():
+    """Launch periodic cleanup for expired sessions and repo cache."""
+    asyncio.create_task(session_cleanup_loop())
+
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 if __name__ == "__main__":

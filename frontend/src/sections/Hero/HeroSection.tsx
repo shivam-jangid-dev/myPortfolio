@@ -72,30 +72,14 @@ export function HeroSection() {
   const modes: Array<BinaryPortraitProps['charMode']> = ['binary', 'stack', 'matrix', 'blocks']
 
   return (
-    <section id="hero" className="relative min-h-[100dvh] pt-[4.25rem] flex items-center justify-center overflow-hidden">
+    <section id="hero" className="relative min-h-[100dvh] pt-[3.25rem] flex items-center justify-center overflow-hidden">
       {/* Background Grid Pattern */}
       <div className="absolute inset-0 bg-grid-fade opacity-30 pointer-events-none" />
 
-      <div className="container px-4 sm:px-6 mx-auto relative z-10 grid lg:grid-cols-[1fr_400px] gap-8 lg:gap-12 items-center">
-        {/* Right: BinaryPortrait — visible on all screens, top on mobile via order-first, right column on lg+ */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.5 }}
-          className="flex order-first lg:order-last items-center justify-center relative w-[85vw] sm:w-[75vw] lg:w-full max-w-[85vw] sm:max-w-[75vw] lg:max-w-none mx-auto aspect-[4/5]"
-        >
-          <BinaryPortrait
-            src={profileImg}
-            charMode={charMode}
-            width={400}
-            height={500}
-            className="w-full h-full object-contain"
-          />
-        </motion.div>
-
-        {/* Left: Terminal */}
-        <div className="flex flex-col gap-8 order-last lg:order-first">
-          <Terminal title="visitor@shivamjangid.dev:~" className="min-h-[380px] w-full max-w-3xl shadow-glow">
+      <div className="container px-4 sm:px-6 mx-auto relative z-10 flex flex-col lg:grid lg:grid-cols-[1fr_480px] lg:grid-rows-[auto_auto_1fr] gap-1 lg:gap-x-24 lg:gap-y-0 lg:items-stretch max-w-[1400px]">
+        {/* 1. Terminal (Order 1 on mobile, Col 1 Row 1 on desktop) */}
+        <div className="order-1 lg:col-start-1 lg:row-start-1 w-full flex flex-col justify-start">
+          <Terminal title="visitor@shivamjangid.dev:~" className="min-h-[380px] w-full max-w-3xl shadow-glow lg:mb-0 mb-2">
             {introLines.slice(0, currentLineIndex + 1).map((line, idx) => {
               const isCurrent = idx === currentLineIndex
 
@@ -127,44 +111,69 @@ export function HeroSection() {
               <TerminalLine prompt="visitor@shivamjangid.dev:~$" command="" showCursor />
             )}
           </Terminal>
-
-          {/* CTAs reveal after sequence completes */}
-          <AnimatePresence>
-            {isSequenceComplete && (
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="flex flex-col gap-4 items-start"
-              >
-                <div className="flex flex-wrap items-center gap-4">
-                  <Button onClick={scrollToProjects} className="font-mono shadow-glow border border-accent/50 hover:bg-accent/90">
-                    <span className="mr-2 opacity-70">./</span>view_projects.sh
-                  </Button>
-                  <Button variant="outline" onClick={scrollToContact} className="font-mono">
-                    <span className="mr-2 opacity-70">./</span>contact.sh
-                  </Button>
-                </div>
-
-                {/* Char Mode Switcher */}
-                <div className="flex items-center gap-3 mt-2 font-mono text-xs">
-                  <span className="text-muted-foreground opacity-70">--render-mode:</span>
-                  <div className="flex gap-2">
-                    {modes.map(mode => (
-                      <button
-                        key={mode}
-                        onClick={() => setCharMode(mode)}
-                        className={`transition-colors hover:text-accent ${charMode === mode ? 'text-accent font-bold' : 'text-muted-foreground'}`}
-                      >
-                        [{mode}]
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
+
+        {/* 2. Buttons (Order 2 on mobile, Col 1 Row 2 on desktop) */}
+        <AnimatePresence>
+          {isSequenceComplete && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="order-2 lg:col-start-1 lg:row-start-2 flex flex-wrap items-center gap-4"
+            >
+              <Button onClick={scrollToProjects} className="font-mono shadow-glow border border-accent/50 hover:bg-accent/90">
+                <span className="mr-2 opacity-70">./</span>view_projects.sh
+              </Button>
+              <Button variant="outline" onClick={scrollToContact} className="font-mono">
+                <span className="mr-2 opacity-70">./</span>contact.sh
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* 3. Portrait (Order 3 on mobile, Col 2 Row 1-2 on desktop) */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+          className="order-3 lg:order-none lg:col-start-2 lg:row-start-1 lg:row-span-2 flex items-center justify-center relative w-full max-w-[320px] sm:max-w-[380px] lg:max-w-full mx-auto lg:h-full my-2 lg:my-0"
+        >
+          <BinaryPortrait
+            src={profileImg}
+            charMode={charMode}
+            width={480}
+            height={600}
+            className="w-full h-full object-cover lg:object-fill rounded-xl"
+          />
+        </motion.div>
+
+        {/* 4. Mode Switcher (Order 4 on mobile, Col 1 Row 3 on desktop) */}
+        <AnimatePresence>
+          {isSequenceComplete && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              className="order-4 lg:col-start-1 lg:row-start-3 flex flex-col items-start"
+            >
+              <div className="flex flex-wrap items-center gap-3 font-mono text-xs mt-1 lg:mt-0">
+                <span className="text-muted-foreground opacity-70">--render-mode:</span>
+                <div className="flex gap-2">
+                  {modes.map(mode => (
+                    <button
+                      key={mode}
+                      onClick={() => setCharMode(mode)}
+                      className={`transition-colors hover:text-accent ${charMode === mode ? 'text-accent font-bold' : 'text-muted-foreground'}`}
+                    >
+                      [{mode}]
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </section>
   )

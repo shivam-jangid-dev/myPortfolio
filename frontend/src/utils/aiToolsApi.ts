@@ -57,6 +57,7 @@ export async function analyseResume(
 /* ─── Repo Explainer ─── */
 
 export type RepoExplanation = {
+  session_id: string
   metadata: {
     full_name: string
     description: string
@@ -94,4 +95,28 @@ export async function analyzeRepo(repoUrl: string): Promise<RepoExplanation> {
   }
 
   return res.json() as Promise<RepoExplanation>
+}
+
+export type AskRepoResponse = {
+  answer: string
+  session_id: string
+}
+
+/**
+ * POST /repo-explain/ask
+ * Sends a follow-up question to the backend for an analyzed repo session.
+ */
+export async function askRepoQuestion(sessionId: string, question: string): Promise<AskRepoResponse> {
+  const res = await fetch(`${API_BASE_URL}/repo-explain/ask`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ session_id: sessionId, question }),
+  })
+
+  if (!res.ok) {
+    const detail = await parseErrorDetail(res)
+    throw new Error(detail)
+  }
+
+  return res.json() as Promise<AskRepoResponse>
 }

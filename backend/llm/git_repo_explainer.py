@@ -1,13 +1,12 @@
 """
 LLM orchestration for the GitHub Repo Explainer.
 
-Three-stage pipeline:
-  1. File Selector   — picks 5-8 key files from the tree
-  2. Sufficiency Loop — checks if enough info gathered (max 2 rounds)
-  3. Final Synthesis  — produces structured explanation
+Two-stage pipeline:
+  1. Final Synthesis  — produces structured explanation directly from eager data
+  2. Answer Followup  — decides if more data is needed, fetches it, answers
 
 This is "vectorless RAG": retrieval is driven by LLM reasoning over the
-repo's structured file tree, not by vector similarity search.
+repo's structured file tree and metadata, not by vector similarity search.
 """
 
 import json
@@ -19,9 +18,7 @@ from .model_init import model_initialization
 logger = logging.getLogger(__name__)
 
 # ── Loop caps ──────────────────────────────────────────────────────────────────
-MAX_SUFFICIENCY_ROUNDS = 2
-MAX_FILES_PER_ROUND = 8
-MAX_INITIAL_FILES = 8
+MAX_FOLLOWUP_FETCHES = 2
 
 
 def _parse_json_response(text: str) -> dict | list:
@@ -59,125 +56,18 @@ def _invoke_llm(system: str, user: str, retry: bool = True) -> str:
         raise
 
 
-# ── Stage 1: File Selector ────────────────────────────────────────────────────
-
-def select_files(
-    owner: str,
-    repo: str,
-    description: str,
-    language: str,
-    file_tree: str,
-) -> list[str]:
-    """
-    Given repo metadata and file tree, ask the LLM to select 5-8 key files.
-    Returns a list of file paths.
-    """
-    system = (
-        "You are exploring a GitHub repository to understand it. "
-        "Your task is to select the most informative files to read."
-    )
-
-    user = f"""Repo: {owner}/{repo}
-Description: {description}
-Primary language: {language}
-
-Full file tree:
-{file_tree}
-
-From this file tree, select the {MAX_INITIAL_FILES} files most likely to reveal
-what this project does and how it works. Prioritize:
-- README or similar docs
-- Entry points (main.py, index.js, app.js, cmd/main.go, etc.)
-- Config files (package.json, requirements.txt, Cargo.toml, Dockerfile, etc.)
-- Core source files that appear central based on naming and location
-
-Return ONLY a JSON array of file paths, nothing else.
-Example: ["README.md", "src/index.js", "package.json"]"""
-
-    raw = _invoke_llm(system, user)
-
-    try:
-        result = _parse_json_response(raw)
-        if isinstance(result, list):
-            # Ensure all items are strings and limit count
-            paths = [str(p) for p in result if isinstance(p, str)]
-            return paths[:MAX_INITIAL_FILES]
-    except (json.JSONDecodeError, ValueError) as e:
-        logger.warning("Failed to parse file selector response: %s", e)
-
-    # Fallback: try to extract paths from the raw text
-    logger.warning("Using fallback path extraction from LLM response")
-    return _fallback_extract_paths(raw)
-
-
-def _fallback_extract_paths(text: str) -> list[str]:
-    """Last-resort extraction: pull quoted strings that look like file paths."""
-    import re
-    paths = re.findall(r'"([^"]+\.[a-zA-Z]+)"', text)
-    return paths[:MAX_INITIAL_FILES]
-
-
-# ── Stage 2: Sufficiency Check ────────────────────────────────────────────────
-
-def check_sufficiency(
-    file_contents: dict[str, str],
-    file_tree: str,
-) -> dict:
-    """
-    Ask the LLM if it has enough information to explain the repo.
-    Returns {"status": "done"} or {"status": "need_more", "files": [...]}.
-    """
-    system = (
-        "You are analyzing a GitHub repository. Decide if you have enough "
-        "information to write a complete explanation, or if you need to read more files."
-    )
-
-    # Format file contents for the prompt
-    files_text = ""
-    for path, content in file_contents.items():
-        files_text += f"\n--- {path} ---\n{content}\n"
-
-    user = f"""You have read the following files so far:
-{files_text}
-
-Full file tree for reference:
-{file_tree}
-
-Do you now have enough information to explain what this project does,
-its architecture, and how to run it?
-
-If yes, return: {{"status": "done"}}
-If no, return: {{"status": "need_more", "files": ["path1", "path2"]}}
-(select up to {MAX_FILES_PER_ROUND} additional files that would fill gaps in your understanding)
-
-Return ONLY valid JSON, nothing else."""
-
-    raw = _invoke_llm(system, user)
-
-    try:
-        result = _parse_json_response(raw)
-        if isinstance(result, dict):
-            status = result.get("status", "done")
-            if status == "need_more":
-                files = result.get("files", [])
-                files = [str(f) for f in files if isinstance(f, str)]
-                return {"status": "need_more", "files": files[:MAX_FILES_PER_ROUND]}
-            return {"status": "done"}
-    except (json.JSONDecodeError, ValueError) as e:
-        logger.warning("Failed to parse sufficiency check: %s — assuming done", e)
-
-    return {"status": "done"}
-
-
-# ── Stage 3: Final Synthesis ──────────────────────────────────────────────────
+# ── Stage 1: Final Synthesis ──────────────────────────────────────────────────
 
 def synthesize_explanation(
     metadata: dict,
-    file_contents: dict[str, str],
+    file_tree: str,
     languages: dict[str, int],
+    readme: str = "",
+    contributors: list[dict] | None = None,
+    commits: list[dict] | None = None,
 ) -> dict:
     """
-    Generate the final structured explanation of the repository.
+    Generate the final structured explanation of the repository in a single shot.
     Returns a dict with the explanation sections.
     """
     system = (
@@ -185,11 +75,6 @@ def synthesize_explanation(
         "first time. Base your answer ONLY on the data below — do not invent "
         "file or folder names that weren't given to you. Be specific and concrete."
     )
-
-    # Format file contents
-    files_text = ""
-    for path, content in file_contents.items():
-        files_text += f"\n--- {path} ---\n{content}\n"
 
     # Format language breakdown
     lang_text = ", ".join(
@@ -199,16 +84,35 @@ def synthesize_explanation(
         )
     )
 
+    # Build contributor and commit sections
+    extra_context = ""
+    if readme:
+        extra_context += f"\nREADME.md:\n{readme}\n"
+
+    if contributors:
+        contrib_lines = ", ".join(
+            f"{c['login']} ({c['contributions']} commits)" for c in contributors[:10]
+        )
+        extra_context += f"\nTop contributors: {contrib_lines}\n"
+
+    if commits:
+        commit_lines = "\n".join(
+            f"  - {c['author']}: {c['message'][:120]} ({c['date'][:10]})"
+            for c in commits[:10]
+        )
+        extra_context += f"\nRecent commits:\n{commit_lines}\n"
+
     user = f"""Repository: {metadata.get('full_name', 'Unknown')}
 Description: {metadata.get('description', 'N/A')}
 Stars: {metadata.get('stargazers_count', 0)} | Forks: {metadata.get('forks_count', 0)}
+License: {metadata.get('license', 'None')}
 Languages: {lang_text}
 Topics: {', '.join(metadata.get('topics', [])) or 'None'}
+{extra_context}
+Full file tree:
+{file_tree}
 
-Files read:
-{files_text}
-
-Respond in EXACTLY this JSON structure (all values are strings):
+Respond in EXACTLY this JSON structure (all values are strings except tech_stack which is a list):
 {{
   "what_it_does": "2-3 plain-English sentences explaining what this project does",
   "tech_stack": ["item1", "item2", "item3"],
@@ -239,3 +143,125 @@ Return ONLY valid JSON, nothing else."""
         "getting_started": "Please refer to the repository's README.",
         "notable": "",
     }
+
+
+# ── Stage 2: Follow-up Q&A ───────────────────────────────────────────────────
+
+# Allowed on-demand endpoint keys the LLM can request
+_ENDPOINT_DESCRIPTIONS = {
+    "issues": "List open issues",
+    "pull_requests": "List open pull requests",
+    "releases": "List releases / versions",
+    "file_content": "Read a specific file (requires 'path' param)",
+    "issue_detail": "Read a specific issue (requires 'number' param)",
+}
+
+
+def decide_followup_fetch(
+    question: str,
+    repo_summary: str,
+    qa_history: list[dict] | None = None,
+) -> dict | None:
+    """
+    Ask the LLM whether it needs additional GitHub data to answer a follow-up
+    question, or if it already has enough context.
+
+    Returns None if no fetch is needed.
+    Returns {"endpoint": "...", "params": {...}} if it needs data.
+    """
+    system = (
+        "You are answering follow-up questions about a GitHub repository. "
+        "You have access to a set of on-demand endpoints to fetch more data "
+        "if needed. Decide whether you need additional data to answer."
+    )
+
+    endpoints_desc = "\n".join(
+        f'  "{key}": {desc}' for key, desc in _ENDPOINT_DESCRIPTIONS.items()
+    )
+
+    history_text = ""
+    if qa_history:
+        for entry in qa_history[-5:]:  # Last 5 Q&A pairs for context
+            history_text += f"\nQ: {entry.get('question', '')}\nA: {entry.get('answer', '')[:300]}\n"
+
+    user = f"""Repository context:
+{repo_summary}
+
+{f"Previous Q&A:{history_text}" if history_text else ""}
+
+New question: {question}
+
+Available endpoints you can request:
+{endpoints_desc}
+
+If you already have enough information to answer this question from the
+repository context above, return:
+{{"endpoint": null}}
+
+If you need more data, return:
+{{"endpoint": "<key>", "params": {{"path": "src/file.py"}}}}
+
+Notes:
+- "params" is only needed for "file_content" (needs "path") and "issue_detail" (needs "number")
+- For other endpoints, omit "params" or set it to {{}}
+- Only request ONE endpoint at a time
+
+Return ONLY valid JSON, nothing else."""
+
+    raw = _invoke_llm(system, user)
+
+    try:
+        result = _parse_json_response(raw)
+        if isinstance(result, dict):
+            endpoint = result.get("endpoint")
+            if endpoint is None or endpoint == "null":
+                return None
+            if endpoint in _ENDPOINT_DESCRIPTIONS:
+                return {
+                    "endpoint": endpoint,
+                    "params": result.get("params") or {},
+                }
+            logger.warning("LLM requested unknown endpoint: %s", endpoint)
+            return None
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.warning("Failed to parse followup-fetch decision: %s", e)
+
+    return None
+
+
+def generate_followup_answer(
+    question: str,
+    repo_summary: str,
+    extra_data: str = "",
+    qa_history: list[dict] | None = None,
+) -> str:
+    """
+    Generate the final answer to a follow-up question, optionally incorporating
+    freshly-fetched on-demand data.
+    """
+    system = (
+        "You are a helpful assistant answering questions about a GitHub repository. "
+        "Be concise and specific. Base your answer on the data provided — do not "
+        "make up information that isn't in the context."
+    )
+
+    history_text = ""
+    if qa_history:
+        for entry in qa_history[-5:]:
+            history_text += f"\nQ: {entry.get('question', '')}\nA: {entry.get('answer', '')[:300]}\n"
+
+    data_section = ""
+    if extra_data:
+        data_section = f"\nAdditional data fetched for this question:\n{extra_data}\n"
+
+    user = f"""Repository context:
+{repo_summary}
+
+{f"Previous Q&A:{history_text}" if history_text else ""}
+{data_section}
+
+Question: {question}
+
+Provide a clear, helpful answer based on the information available."""
+
+    return _invoke_llm(system, user)
