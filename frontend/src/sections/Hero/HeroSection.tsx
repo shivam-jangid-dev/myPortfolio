@@ -72,7 +72,7 @@ export function HeroSection() {
   const modes: Array<BinaryPortraitProps['charMode']> = ['binary', 'stack', 'matrix', 'blocks']
 
   return (
-    <section id="hero" className="relative min-h-[100dvh] pt-[3.25rem] flex items-center justify-center overflow-hidden">
+    <section id="hero" className="relative min-h-[100dvh] pt-[3.25rem] flex items-center justify-center overflow-x-hidden">
       {/* Background Grid Pattern */}
       <div className="absolute inset-0 bg-grid-fade opacity-30 pointer-events-none" />
 
@@ -120,7 +120,7 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="order-2 lg:col-start-1 lg:row-start-2 flex flex-wrap items-center gap-4"
+              className="order-2 lg:col-start-1 lg:row-start-2 flex flex-wrap items-center gap-4 mb-6 lg:mb-0"
             >
               <Button onClick={scrollToProjects} className="font-mono shadow-glow border border-accent/50 hover:bg-accent/90">
                 <span className="mr-2 opacity-70">./</span>view_projects.sh
@@ -155,7 +155,7 @@ export function HeroSection() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
-              className="order-4 lg:col-start-1 lg:row-start-3 flex flex-col items-start"
+              className="order-4 lg:col-start-1 lg:row-start-3 flex flex-col items-start mt-auto"
             >
               <div className="flex flex-wrap items-center gap-3 font-mono text-xs mt-1 lg:mt-0">
                 <span className="text-muted-foreground opacity-70">--render-mode:</span>
