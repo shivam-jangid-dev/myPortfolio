@@ -9,7 +9,7 @@ export const profile: Profile = {
   phone: '+91 9887553886',
   linkedin: 'https://linkedin.com/in/shivam-jangid12',
   linkedinLabel: 'linkedin.com/in/shivam-jangid12',
-  github: 'https://github.com/avengers300O',
+  github: 'https://github.com/shivam-jangid-dev',
   summary: [
     'AI Backend Engineer with 1+ years building scalable Python systems, RESTful APIs, and AI-powered applications.',
     'Hands-on experience with LLM integrations, FastAPI, Apache Airflow, and AWS cloud infrastructure.',
@@ -17,7 +17,7 @@ export const profile: Profile = {
   ],
   cliIntro: [
     { prompt: 'visitor@shivamjangid.dev:~$', command: 'whoami' },
-    { output: 'Shivam Jangid — AI Backend Engineer' },
+    { output: 'Shivam Jangid — AI Engineer' },
     { prompt: 'visitor@shivamjangid.dev:~$', command: 'cat skills.txt' },
     { output: 'Python • FastAPI • LangChain • Claude API • AWS • Docker • PostgreSQL' },
     { prompt: 'visitor@shivamjangid.dev:~$', command: 'cat summary.txt' },

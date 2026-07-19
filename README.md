@@ -1,6 +1,6 @@
-# Shivam Jangid — AI Backend Engineer Portfolio
+# Shivam Jangid — AI Engineer Portfolio
 
-An immersive, "Terminal Noir" single-page portfolio showcasing AI backend engineering experience, scalable system design, and full-stack projects.
+An immersive, "Terminal Noir" single-page portfolio showcasing AI engineering experience, scalable system design, and full-stack projects.
 
 ## 🚀 Frontend Tech Stack
 

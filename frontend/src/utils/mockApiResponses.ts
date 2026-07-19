@@ -51,7 +51,7 @@ export const mockColdEmail: ColdEmailResult = {
 
 I recently saw the opening for the Backend Engineer role at [Company] and was immediately drawn to your work in [Specific Area].
 
-I'm an AI Backend Engineer with a strong track record of building scalable systems. At Airat.in, I reduced API latency by 15% and automated ETL workflows that saved the team 10+ hours a week. I'm proficient in Python, FastAPI, and AWS, and have recently been focusing on integrating LLMs into production services.
+I'm an AI Engineer with a strong track record of building scalable systems. At Airat.in, I reduced API latency by 15% and automated ETL workflows that saved the team 10+ hours a week. I'm proficient in Python, FastAPI, and AWS, and have recently been focusing on integrating LLMs into production services.
 
 I've attached my resume for your review. I'd love to chat about how my experience aligns with the team's goals.
 

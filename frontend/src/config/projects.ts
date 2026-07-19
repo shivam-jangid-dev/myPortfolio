@@ -3,16 +3,17 @@ import type { Project } from './types'
 export const projects: Project[] = [
   {
     id: 'ai-portfolio',
-    title: 'AI Portfolio Site (shivamjangid.dev)',
+    title: 'AI Portfolio Site (shivamjangid)',
     summary:
-      'Personal brand site with live AI tools: Resume Analyzer, PDF Summarizer, and Cold Email Writer.',
+      'Personal brand site with live AI tools: Resume Analyzer and GitHub Repo Explainer.',
     description:
-      'A full-stack personal platform showcasing AI-assisted utilities. Backend combines FastAPI with LangChain and RAG patterns; integrated Claude API for high-quality completions. Frontend deployed on Vercel with API services on Railway for a split deployment model suited to serverless and long-running tasks.',
-    tech: ['FastAPI', 'Claude API', 'LangChain', 'RAG', 'Next.js', 'Railway', 'Vercel'],
+      'An AI engineering personal platform showcasing production-style AI tools. Backend built with FastAPI and LangChain, using Groq for LLM inference — the Repo Explainer uses a vectorless RAG approach, reasoning directly over repo structure instead of embeddings, while the Resume Analyzer extracts and parses PDFs with PyMuPDF. Frontend built with React, Tailwind CSS, and Vite, deployed on Netlify with the API deployed separately on Render.',
+    tech: ['FastAPI', 'LangChain', 'Groq', 'RAG', 'React', 'Tailwind CSS', 'Vite', 'Netlify', 'Render'],
     highlights: [
-      'Three production-style AI tools in one product surface',
-      'RAG-oriented document workflows',
-      'Split deploy: Vercel + Railway',
+      'Two production-style AI tools: Resume Analyzer and GitHub Repo Explainer',
+      'Vectorless RAG — LLM reasons over repo file structure instead of vector embeddings',
+      'Rate-limited API endpoints via slowapi',
+      'Split deploy: Netlify (frontend) + Render (backend)',
     ],
     links: [{ label: 'Live site', href: '' }],
   },
