@@ -73,7 +73,7 @@ export function HeroSection() {
 
   return (
     // <section id="hero" className="relative min-h-[100dvh] pt-[4.25rem] flex items-center justify-center overflow-x-hidden">
-    <section id="hero" className="relative min-h-[100dvh] pt-[4.25rem] flex items-start justify-center overflow-x-hidden">
+    <section id="hero" className="relative min-h-[100dvh] pt-[3.75rem] flex items-start justify-center overflow-x-hidden">
       {/* Background Grid Pattern */}
       <div className="absolute inset-0 bg-grid-fade opacity-30 pointer-events-none" />
 

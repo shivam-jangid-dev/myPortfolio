@@ -64,11 +64,11 @@ export function ThemeSwitcher({ className }: { className?: string }) {
                   <span
                     className={cn('h-2.5 w-2.5 rounded-full', {
                       'bg-[#00d26a]': t === 'terminal-noir',
-                      'bg-[#0866FF]': t === 'meta',
-                      'bg-[#000000] dark:bg-[#ffffff]': t === 'apple',
-                      'bg-[#FF9900]': t === 'amazon',
-                      'bg-[#E50914]': t === 'netflix',
-                      'bg-[#4285F4]': t === 'google',
+                      'bg-[#0866FF]': t === 'ocean-blue',
+                      'bg-[#000000] dark:bg-[#ffffff]': t === 'sleek-minimal',
+                      'bg-[#FF9900]': t === 'charcoal-orange',
+                      'bg-[#E50914]': t === 'cinematic-red',
+                      'bg-[#4285F4]': t === 'vibrant-primary',
                     })}
                   />
                   {THEME_LABELS[t]}

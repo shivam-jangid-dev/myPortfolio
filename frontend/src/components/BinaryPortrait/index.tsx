@@ -5,11 +5,11 @@ import { useReducedMotion } from '@/hooks/useReducedMotion'
 
 const THEME_RAMPS: Record<string, { bg: string; colors: string[] }> = {
   'terminal-noir': { bg: '#0d1117', colors: ['#00d26a', '#00ff7f', '#39ff14', '#00e676'] },
-  meta: { bg: '#1C2B33', colors: ['#0866FF', '#66a3ff', '#4d94ff', '#1a6fff'] },
-  apple: { bg: '#1a1a1a', colors: ['#F5F5F7', '#a0a0a8', '#d0d0d5', '#e8e8ed'] },
-  amazon: { bg: '#131921', colors: ['#FF9900', '#ffb84d', '#ffaa00', '#e68a00'] },
-  netflix: { bg: '#141414', colors: ['#E50914', '#ff2d38', '#cc0811', '#ff6670'] },
-  google: { bg: '#202124', colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853'] },
+  'ocean-blue': { bg: '#1C2B33', colors: ['#0866FF', '#66a3ff', '#4d94ff', '#1a6fff'] },
+  'sleek-minimal': { bg: '#1a1a1a', colors: ['#F5F5F7', '#a0a0a8', '#d0d0d5', '#e8e8ed'] },
+  'charcoal-orange': { bg: '#131921', colors: ['#FF9900', '#ffb84d', '#ffaa00', '#e68a00'] },
+  'cinematic-red': { bg: '#141414', colors: ['#E50914', '#ff2d38', '#cc0811', '#ff6670'] },
+  'vibrant-primary': { bg: '#202124', colors: ['#4285F4', '#EA4335', '#FBBC05', '#34A853'] },
 }
 
 export const CHAR_MODES: Record<string, string[]> = {
@@ -80,7 +80,7 @@ export default function BinaryPortrait({
       const scaleY = imgH / canvas.height
 
       const isGlitching = forceGlitch || glitchingRef.current
-      const isGoogle = activeTheme === 'google'
+      const isGoogle = activeTheme === 'vibrant-primary'
 
       for (let y = 0; y < canvas.height; y += actualCharSize) {
         for (let x = 0; x < canvas.width; x += actualCharSize) {

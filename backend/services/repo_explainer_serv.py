@@ -247,7 +247,7 @@ async def _run_analysis(owner: str, repo: str) -> dict:
       2. LLM creates final synthesis directly from eager data
       3. Create session
     """
-    async with httpx.AsyncClient(timeout=20.0) as client:
+    async with httpx.AsyncClient(timeout=60.0) as client:
         # ── Step 1: Fetch eager data (check shared cache first) ───────────────
         cached_eager = get_cached_repo(owner, repo)
         if cached_eager:
@@ -320,7 +320,7 @@ async def _run_followup(session: Session, question: str) -> str:
     repo_summary = session.repo_summary_for_llm()
     extra_data_parts: list[str] = []
 
-    async with httpx.AsyncClient(timeout=20.0) as client:
+    async with httpx.AsyncClient(timeout=60.0) as client:
         for fetch_round in range(MAX_FOLLOWUP_FETCHES):
             # Include any data already fetched this question
             current_extra = "\n\n".join(extra_data_parts) if extra_data_parts else ""

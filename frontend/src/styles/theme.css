@@ -77,7 +77,7 @@ html[data-theme='terminal-noir'] {
    Meta (Facebook/Instagram)
    Blue/white, clean social-product feel
    ───────────────────────────────────────────── */
-html[data-theme='meta'] {
+html[data-theme='ocean-blue'] {
   --background: 207 33% 15%;         /* #1C2B33 */
   --card: 207 25% 19%;
   --muted: 207 18% 24%;
@@ -106,7 +106,7 @@ html[data-theme='meta'] {
    Apple
    Ultra-minimal, black/white/silver
    ───────────────────────────────────────────── */
-html[data-theme='apple'] {
+html[data-theme='sleek-minimal'] {
   --background: 0 0% 96%;            /* #F5F5F7 */
   --card: 0 0% 100%;                 /* #FFFFFF */
   --muted: 0 0% 92%;
@@ -137,7 +137,7 @@ html[data-theme='apple'] {
    Amazon
    Orange/dark navy, utilitarian data-dense
    ───────────────────────────────────────────── */
-html[data-theme='amazon'] {
+html[data-theme='charcoal-orange'] {
   --background: 213 33% 10%;         /* #131921 */
   --card: 213 25% 14%;
   --muted: 213 18% 19%;
@@ -166,7 +166,7 @@ html[data-theme='amazon'] {
    Netflix
    Cinematic red/black, bold typographic hierarchy
    ───────────────────────────────────────────── */
-html[data-theme='netflix'] {
+html[data-theme='cinematic-red'] {
   --background: 0 0% 8%;             /* #141414 */
   --card: 0 0% 10%;                  /* #1a1a1a */
   --muted: 0 0% 16%;                 /* #2a2a2a */
@@ -195,7 +195,7 @@ html[data-theme='netflix'] {
    Google
    Multi-color accent on white, Material Design
    ───────────────────────────────────────────── */
-html[data-theme='google'] {
+html[data-theme='vibrant-primary'] {
   --background: 0 0% 100%;           /* #FFFFFF */
   --card: 0 0% 98%;
   --muted: 0 0% 94%;

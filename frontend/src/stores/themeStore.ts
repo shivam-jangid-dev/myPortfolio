@@ -4,30 +4,30 @@ import { persist } from 'zustand/middleware'
 /** All available theme identifiers. */
 export type ThemeId =
   | 'terminal-noir'
-  | 'meta'
-  | 'apple'
-  | 'amazon'
-  | 'netflix'
-  | 'google'
+  | 'ocean-blue'
+  | 'sleek-minimal'
+  | 'charcoal-orange'
+  | 'cinematic-red'
+  | 'vibrant-primary'
 
 /** Ordered list of all themes — used by ThemeSwitcher to render options. */
 export const THEME_IDS: ThemeId[] = [
   'terminal-noir',
-  'meta',
-  'apple',
-  'amazon',
-  'netflix',
-  'google',
+  'ocean-blue',
+  'sleek-minimal',
+  'charcoal-orange',
+  'cinematic-red',
+  'vibrant-primary',
 ]
 
 /** Human-readable labels for each theme. */
 export const THEME_LABELS: Record<ThemeId, string> = {
   'terminal-noir': 'Terminal Noir',
-  meta: 'Meta',
-  apple: 'Apple',
-  amazon: 'Amazon',
-  netflix: 'Netflix',
-  google: 'Google',
+  'ocean-blue': 'Ocean Blue',
+  'sleek-minimal': 'Sleek Minimal',
+  'charcoal-orange': 'Charcoal Orange',
+  'cinematic-red': 'Cinematic Red',
+  'vibrant-primary': 'Vibrant Primary',
 }
 
 const STORAGE_KEY = 'portfolio-theme'

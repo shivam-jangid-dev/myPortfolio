@@ -233,7 +233,7 @@ def _is_binary(path: str) -> bool:
     return any(lower.endswith(ext) for ext in _BINARY_EXTENSIONS)
 
 
-def _truncate_tree(tree_items: list[dict], max_items: int = 800) -> list[dict]:
+def _truncate_tree(tree_items: list[dict], max_items: int = 400) -> list[dict]:
     """
     For huge repos, truncate the tree to top-level + 2 levels deep.
     Returns the list sorted alphabetically.
@@ -256,12 +256,20 @@ async def fetch_file_tree(
     Returns (tree_items, was_truncated).
     Each item has 'path', 'type' ('blob' or 'tree'), and 'size'.
     """
-    data = await _get_json(
-        client,
-        f"{_GITHUB_API}/repos/{owner}/{repo}/git/trees/{branch}?recursive=1",
-    )
+    try:
+        data = await _get_json(
+            client,
+            f"{_GITHUB_API}/repos/{owner}/{repo}/git/trees/{branch}?recursive=1",
+        )
+    except (httpx.TimeoutException, httpx.HTTPStatusError) as e:
+        logger.warning("Recursive tree fetch failed for %s/%s: %s. Falling back to root tree.", owner, repo, e)
+        data = await _get_json(
+            client,
+            f"{_GITHUB_API}/repos/{owner}/{repo}/git/trees/{branch}",
+        )
+
     raw_tree = data.get("tree", [])
-    truncated = data.get("truncated", False) or len(raw_tree) > 800
+    truncated = data.get("truncated", False) or len(raw_tree) > 400
 
     # Filter out binary files from the tree
     items = [
@@ -270,7 +278,7 @@ async def fetch_file_tree(
         if not _is_binary(item.get("path", ""))
     ]
 
-    if truncated or len(items) > 800:
+    if truncated or len(items) > 400:
         items = _truncate_tree(items)
         truncated = True
 
