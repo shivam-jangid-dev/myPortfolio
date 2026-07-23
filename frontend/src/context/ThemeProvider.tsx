@@ -8,8 +8,8 @@ import { useCallback, useEffect, useMemo, type ReactNode } from 'react'
  */
 const applyDomTheme = (themeId: ThemeId) => {
   document.documentElement.dataset.theme = themeId
-  // Apple and Google are light themes; everything else is dark
-  const scheme = themeId === 'apple' || themeId === 'google' ? 'light' : 'dark'
+  // sleek-minimal and vibrant-primary are light themes; everything else is dark
+  const scheme = themeId === 'sleek-minimal' || themeId === 'vibrant-primary' ? 'light' : 'dark'
   document.documentElement.style.colorScheme = scheme
 }
 
