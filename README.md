@@ -1,4 +1,4 @@
-# Shivam Jangid — AI Engineer & Full-Stack Developer Portfolio
+# Shivam Jangid — AI Engineer & Python Developer Portfolio
 
 An immersive, highly-optimized single-page portfolio designed to showcase advanced AI engineering, scalable system architecture, and full-stack development expertise. Built with a developer-centric "Terminal Noir" aesthetic.
 
