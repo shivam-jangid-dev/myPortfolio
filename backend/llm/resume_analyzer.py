@@ -1,6 +1,6 @@
 from langchain_core.messages import SystemMessage, HumanMessage
 from pydantic import BaseModel
-
+import os
 from .model_init import model_initialization
 
 
@@ -27,7 +27,10 @@ Analyse the provided resume (and optional job description) and return a JSON obj
 
 def resume_analyzer(resume_text: str, job_description: str = None) -> dict:
     # response_format uses .with_structured_output() under the hood (LangChain 1.x).
-    model = model_initialization(response_format=ResumeAnalysis)
+    model = model_initialization(model_name=os.getenv(
+        "RESUME_LLM_MODEL",
+        "openai/gpt-oss-120b"
+    ),response_format=ResumeAnalysis)
 
     # Keep user-supplied content in the human message, never in the system prompt.
     # This prevents job_description from being used as a prompt-injection vector.

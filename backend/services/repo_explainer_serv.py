@@ -137,48 +137,105 @@ class AskRequest(BaseModel):
 
 # ── POST /repo-explain ────────────────────────────────────────────────────────
 
+
 @router.post("/repo-explain")
 @limiter.limit("3/minute")
 async def repo_explain(request: Request, body: RepoRequest):
     """
     Analyze a public GitHub repository and return a structured explanation.
-    Uses vectorless RAG: the LLM reasons over the file tree and metadata directly.
+    Uses vectorless RAG over repository metadata and filtered file tree.
     Returns a session_id for follow-up questions.
     """
+
     repo_url = body.repo_url.strip()
 
-    # ── 1. Validate URL ───────────────────────────────────────────────────────
+    # 1. Validate GitHub URL
     try:
         owner, repo = parse_github_url(repo_url)
+
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
 
-    # ── 2. Run the analysis pipeline with a hard timeout ──────────────────────
+    # 2. Execute analysis with timeout
     try:
         result = await asyncio.wait_for(
             _run_analysis(owner, repo),
             timeout=_HARD_TIMEOUT,
         )
+
     except asyncio.TimeoutError:
-        logger.warning("Analysis timed out for %s/%s", owner, repo)
+        logger.warning(
+            "Analysis timed out for %s/%s",
+            owner,
+            repo,
+        )
+
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-            detail="Analysis took too long. The repository may be very large. Please try again.",
+            detail=(
+                "Analysis took too long. "
+                "The repository may be very large. Please try again."
+            ),
         )
+
     except ValueError as e:
-        # Known errors from GitHub API (404, rate limit, etc.)
+        logger.warning(
+            "Repository validation/fetch error: %s",
+            e,
+        )
+
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
+
     except Exception as e:
-        logger.error("Analysis failed for %s/%s: %s", owner, repo, e, exc_info=True)
+        error_message = str(e).lower()
+
+        logger.error(
+            "Analysis failed for %s/%s: %s",
+            owner,
+            repo,
+            e,
+            exc_info=True,
+        )
+
+        # Token/request size errors
+        if (
+            "413" in error_message
+            or "request too large" in error_message
+            or "tokens per minute" in error_message
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=(
+                    "Repository context exceeded the AI model's "
+                    "token limit. Please try again with a smaller "
+                    "repository or reduced context."
+                ),
+            )
+
+        # Rate-limit errors
+        if (
+            "429" in error_message
+            or "rate_limit_exceeded" in error_message
+            or "rate limit" in error_message
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=(
+                    "The AI service has reached its rate limit. "
+                    "Please try again later."
+                ),
+            )
+
+        # Other unexpected errors
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred during analysis: {str(e)}",
+            detail="An error occurred during repository analysis.",
         )
 
     return result
